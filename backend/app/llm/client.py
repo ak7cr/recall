@@ -1,0 +1,3 @@
+from typing import Protocol
+class LLMClient(Protocol):
+    def generate(self, prompt:str, *, temperature:float=0.0, json_mode:bool=False)->str: ...

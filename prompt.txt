@@ -1,0 +1,192 @@
+# TASK: Build "Recall", a Conversational Meeting Intelligence System (full-stack, runs locally)
+
+You are building this project end to end. Do NOT ask me questions. Where something is unspecified, choose the sensible default, implement it, and record the assumption in docs/ASSUMPTIONS.md. Work in the phases listed at the bottom, run and test as you go, and only stop when every acceptance criterion at the end is met.
+
+## 1. Product summary
+Recall ingests meeting transcripts and does much more than summarize. It extracts summaries, topics, participants, decisions, and action items (assignee, deadline, status), stores them with the exact transcript evidence, and lets the user chat with one meeting or the entire meeting history. Every answer carries citations back to meetings and transcript lines. Its distinguishing feature is CROSS-MEETING CONTEXTUAL MEMORY: it connects information across meetings (e.g. "What happened with our database migration?" gives a chronological narrative across meetings; "What changed between meeting 1 and 3?" gives a comparison).
+This is an academic NLP project. The NLP components must be separable, explicit and measurable, so faculty can identify each technique, and an evaluation harness is a first-class deliverable.
+
+Target machine: MacBook M2 Air, 24 GB unified memory, macOS, no CUDA. Use CPU/MPS-friendly models. Everything runs locally; the only external service is a local Ollama server.
+
+## 2. Tech stack (fixed, don't substitute)
+- Frontend: React 18 + Vite + TypeScript + Tailwind CSS, React Router, TanStack Query, Recharts, lucide-react.
+- Backend: Python 3.11, FastAPI, Uvicorn, SQLAlchemy 2.0 + Alembic, Pydantic v2, psycopg 3.
+- DB: PostgreSQL 16 via docker-compose (only Postgres is containerized; the app runs natively).
+- NLP: spaCy (en_core_web_lg), Hugging Face transformers + torch (use "mps" if available, else CPU), sentence-transformers (all-MiniLM-L6-v2), KeyBERT, rank_bm25, rapidfuzz, dateparser, FAISS (faiss-cpu).
+- Summarization models: facebook/bart-large-cnn and t5-base (or google/flan-t5-base) as baselines.
+- LLM: Ollama HTTP API at http://localhost:11434, default model `qwen2.5:7b-instruct` (configurable via env OLLAMA_MODEL). Use JSON mode (`"format": "json"`) for structured extraction, temperature 0 for extraction and 0.2 for chat answers. Wrap in an `LLMClient` interface so a cloud provider can be added later.
+- File parsing: pypdf (or pdfplumber), python-docx.
+- Tests: pytest, httpx TestClient; frontend: Vitest + React Testing Library (smoke tests only).
+- Single-user app: NO authentication.
+
+## 3. Repository layout (create exactly this)
+```
+recall/
+  README.md  Makefile  docker-compose.yml  .env.example
+  docs/ASSUMPTIONS.md  docs/ARCHITECTURE.md  docs/EVALUATION.md
+  backend/
+    pyproject.toml (or requirements.txt)  alembic.ini  alembic/
+    app/
+      main.py  config.py  db.py  models.py  schemas.py
+      api/ meetings.py  actions.py  decisions.py  chat.py  search.py  dashboard.py
+      ingestion/ parsers.py  transcript_parser.py  chunker.py
+      nlp/ preprocess.py  summarize.py  ner.py  topics.py  actions.py  decisions.py  dates.py
+      knowledge/ embeddings.py  vector_index.py  bm25.py  hybrid.py  supersession.py
+      rag/ query_rewrite.py  retriever.py  answer.py  citations.py  prompts.py
+      llm/ client.py  ollama_client.py
+      pipeline.py   # orchestrates processing of one meeting
+    tests/
+  eval/
+    data/ meetings/*.txt  gold/*.json  qa_gold.json
+    run_eval.py  metrics.py  eval_summarization.py  eval_ner.py  eval_actions.py  eval_decisions.py  eval_retrieval.py  eval_qa.py
+    results/  (generated CSV + markdown + PNG charts)
+  sample_data/  (demo transcripts, see section 10)
+  frontend/  (Vite app)
+```
+
+## 4. Database schema (PostgreSQL, implement with SQLAlchemy models + Alembic migration)
+Use UUID primary keys, created_at timestamps.
+- meetings: id, title, meeting_date (date), source_filename, raw_text, status (`uploaded|processing|ready|failed`), error_message, duration_seconds null, created_at.
+- participants: id, meeting_id FK, speaker_name, utterance_count, word_count.
+- utterances: id, meeting_id FK, idx (int, order in meeting), speaker, text, start_ts null (seconds), end_ts null.
+- summaries: id, meeting_id FK, method (`bart|t5|llm`), summary_text, is_primary bool, created_at. (Store all methods; the LLM summary is primary by default.)
+- topics: id, meeting_id FK, topic, score.
+- entities: id, meeting_id FK, text, label, utterance_idx.
+- action_items: id, meeting_id FK, task, assignee null, deadline_text null, deadline_date null, status (`pending|in_progress|done`), assignee_explicit bool, deadline_explicit bool, confidence float, evidence_utterance_idx int, evidence_quote text, extraction_method (`llm|rules`), created_at, updated_at.
+- decisions: id, meeting_id FK, decision, topic null, evidence_utterance_idx, evidence_quote, status (`active|superseded`), superseded_by_id null FK self, extraction_method, created_at.
+- meeting_chunks: id, meeting_id FK, chunk_index, content, utterance_start_idx, utterance_end_idx, vector_id (int, FAISS id).
+- vector_docs: vector_id (int PK), doc_type (`chunk|action|decision`), ref_id (UUID), meeting_id FK. (Mapping from FAISS ids to rows.)
+- conversations: id, title, meeting_filter (UUID[] null), created_at.
+- messages: id, conversation_id FK, role (`user|assistant`), content, citations JSONB, created_at.
+Add sensible indexes (meeting_id everywhere, status, deadline_date).
+
+## 5. Backend: processing pipeline (`pipeline.py`), run as a FastAPI BackgroundTask; meeting.status transitions uploaded, processing, ready (or failed with error_message). Each stage wrapped in try/except with logging so one failing stage doesn't lose the others where possible.
+
+### 5.1 Ingestion
+- Accept .txt, .docx, .pdf (and .vtt/.srt as a bonus). Extract text. Reject files over 10 MB.
+- `transcript_parser.py`: parse into utterances. Support these formats via regex, auto-detected:
+  1. `Speaker: text`
+  2. `[HH:MM:SS] Speaker: text` and `HH:MM:SS Speaker: text`
+  3. `Speaker (HH:MM:SS): text`
+  4. Unlabeled paragraphs → speaker "Unknown".
+  Continuation lines without a speaker are appended to the previous utterance. Normalize speaker names (strip, title-case, merge case variants).
+- Preprocess: unicode normalization, whitespace cleanup, optional filler removal (um, uh) ONLY for the text sent to summarizers, never in stored evidence text. Tokenization/sentence splitting via spaCy.
+- Meeting date: from the upload form; else try to parse from filename/first lines; else today.
+
+### 5.2 Chunking
+Group consecutive utterances into chunks of about 200 tokens (min 80, max 300) with 1-utterance overlap; never split an utterance unless it exceeds the max. Store utterance_start_idx/end_idx. Chunk text format: `[Speaker]: text` lines.
+
+### 5.3 Summarization (nlp/summarize.py)
+Implement three methods behind one interface `summarize(meeting, method)`:
+- `bart` and `t5`: MAP-REDUCE (the models have ~1024-token limits): chunk the cleaned transcript into ~700-token windows, summarize each, concatenate, then summarize the concatenation (recursively if still too long). Set sensible min/max lengths.
+- `llm`: map-reduce with Ollama; final output is a structured summary: 3-6 sentence overview + key points.
+Run `llm` as primary; run bart and t5 only when `RUN_BASELINE_SUMMARIZERS=true` (default true for eval, false in the UI path to keep uploads fast). Models are lazy-loaded singletons.
+
+### 5.4 NER and topics
+- spaCy NER over utterances: store PERSON, ORG, DATE, TIME, GPE, PRODUCT, EVENT, MONEY with utterance_idx. Add a spaCy EntityRuler with patterns for common tech terms (PostgreSQL, MongoDB, FastAPI, React, AWS, etc.).
+- Participants come from speaker labels, plus PERSON entities mentioned but not speaking (store in entities).
+- Topics: KeyBERT (keyphrase_ngram_range (1,3), top_n=8, MMR diversity 0.5) on the cleaned transcript, using the shared MiniLM model. Store top topics with scores.
+
+### 5.5 Action item extraction (nlp/actions.py), the most important component
+Two extractors behind one interface:
+A) `rules` baseline: regex + spaCy dependency patterns for commitments and requests ("I'll", "I will", "I can take", "let me", "we need to", "we should", "can you", "please", "X will", "action item:", "by <date>", "before <date>", "next week"), assigning the speaker for first-person commitments and the addressee/named person otherwise.
+B) `llm` (primary): process the transcript in overlapping windows (about 40 utterances, 8 overlap). Each utterance is prefixed with its idx, e.g. `[12] Rahul: ...`. Prompt the LLM (system prompt in rag/prompts.py or nlp/prompts) to return ONLY JSON:
+```json
+{"action_items":[{"task":"imperative phrase, e.g. Complete authentication module","assignee":"name or null","deadline_text":"as spoken or null","evidence_utterance_idx":12,"evidence_quote":"verbatim words from that utterance","assignee_explicit":true,"deadline_explicit":true,"confidence":0.0}]}
+```
+Prompt rules: only commitments/assignments actually stated; never invent assignees or deadlines (use null); "I'll X" means assignee = the speaker; mark explicit=false if assignee/deadline is inferred from context; include 2 few-shot examples (use the Rahul/Anshuman example: "We need to complete the authentication module by Friday." / "I'll handle the API integration." / "Great, I'll take care of testing.").
+Post-processing (mandatory):
+1. Validate evidence: `rapidfuzz.fuzz.partial_ratio(evidence_quote, utterance.text) >= 85` on the stated utterance idx (allow ±1 neighbor); else DROP the item.
+2. Normalize assignee to a known participant via fuzzy match (>=85) else keep the raw name; first-person → the speaker.
+3. Resolve deadline_text to deadline_date with `dateparser` (settings: RELATIVE_BASE=meeting_date, PREFER_DATES_FROM='future'); keep deadline_text regardless.
+4. Deduplicate within the meeting (MiniLM cosine > 0.85 on task text) keeping the highest-confidence item.
+5. Retry once on invalid JSON, then log and skip the window.
+Default status = pending.
+
+### 5.6 Decision detection (nlp/decisions.py)
+- `rules` baseline: cue phrases ("we decided", "let's go with", "we'll use", "agreed", "the decision is", "we're going with", "approved", "final call").
+- `llm` (primary): windowed JSON extraction like actions: `{"decisions":[{"decision":"...","topic":"short label","evidence_utterance_idx":n,"evidence_quote":"..."}]}` with the same evidence validation and dedup.
+- Supersession (knowledge/supersession.py), behind config SUPERSESSION=true: for each new decision, find prior decisions from EARLIER meetings with embedding cosine > 0.6; ask the LLM `{"relationship":"supersedes|consistent|unrelated","reason":"..."}`; on "supersedes" set the old decision status=superseded and superseded_by_id=new.
+
+### 5.7 Indexing (knowledge/)
+- Embeddings: sentence-transformers all-MiniLM-L6-v2, normalized, batch encode.
+- FAISS: one `IndexIDMap(IndexFlatIP(384))` persisted to `data/faiss.index`. Index three doc types: chunks, action items (text = "Action item: {task}. Assignee: {assignee}. Deadline: {deadline_text}. Meeting: {title} ({date})"), decisions ("Decision: {decision}. Topic: ..."). Record each in `vector_docs`. Deleting a meeting rebuilds the index from DB (simple and correct).
+- BM25: rank_bm25 built in-memory from the same docs; rebuild at startup and after ingest changes.
+- Hybrid (`hybrid.py`): Reciprocal Rank Fusion (k=60) of dense and BM25 rankings. Expose `retrieve(query, mode='dense|bm25|hybrid', top_k, meeting_ids=None, per_meeting_cap=None)`, used by both chat and eval.
+
+## 6. Backend: Conversational RAG (rag/)
+`POST /api/chat` flow:
+1. Load the conversation's last 6 messages. Rewrite the follow-up question into a standalone query with the LLM (skip if there is no history).
+2. Scope: `meeting_ids` filter from the request, otherwise all meetings.
+3. Retrieve with hybrid mode, top 12 candidates. If scope is all meetings, enforce a per-meeting cap of 3 so evidence spans meetings, then keep the best 8-10 and SORT CHRONOLOGICALLY by meeting_date (then position).
+4. Build the context as numbered sources: `[S1] Meeting "Title" (YYYY-MM-DD), lines 12-18: ...` (for action/decision docs, label type and include the structured fields and the evidence quote).
+5. Detect structured intents (keywords: "pending", "tasks", "who is assigned", "deadline", "overdue", "decisions") and additionally inject the relevant SQL results (e.g. pending action items with assignee/deadline/meeting) as sources labeled `[DB]`.
+6. Answer prompt rules: answer ONLY from the sources; cite with [S#] after each claim; when asked about change over time, narrate chronologically by meeting date; if the sources don't contain the answer, reply exactly with a clear "I couldn't find that in your meetings" style message and cite nothing; never invent names, dates, or numbers. Return JSON `{"answer":"...","used_sources":["S1","S3"]}`.
+7. Citation verification (citations.py): drop any cited id that doesn't exist; map the remaining ones to `{meeting_id, meeting_title, meeting_date, utterance_start_idx, utterance_end_idx, snippet}`.
+8. Persist the user and assistant messages (with citations JSONB) and return them.
+Also implement `POST /api/meetings/compare` (body: meeting_ids[2+]): retrieves per-meeting summaries, decisions and action items and returns an LLM-written comparison (what's new, what changed, what was dropped) with citations.
+
+## 7. REST API (all under /api, OpenAPI documented, CORS for http://localhost:5173)
+- POST /meetings (multipart: file, title?, meeting_date?) → 202 with meeting id; GET /meetings (list + filters); GET /meetings/{id} (full detail: summary(ies), topics, participants, entities, decisions, action items); GET /meetings/{id}/transcript (utterances); DELETE /meetings/{id}; POST /meetings/{id}/reprocess; GET /meetings/{id}/status.
+- GET /actions (filters: status, assignee, meeting_id, overdue, due_before; sort); PATCH /actions/{id} (status, assignee, deadline_date, task); POST /actions (manual create); GET /decisions (filters: meeting_id, status, topic).
+- GET /search?q=&mode=&meeting_ids= → ranked hits with scores and snippets (mode selectable; useful for demoing BM25 vs dense vs hybrid).
+- POST /chat; GET /conversations; GET /conversations/{id}; DELETE /conversations/{id}; POST /meetings/compare.
+- GET /dashboard → totals (meetings, pending/done/overdue actions, active decisions), upcoming deadlines (next 14 days), recent meetings, recent decisions, actions-by-assignee counts, meetings-per-week counts.
+- GET /health (reports DB, Ollama reachability, model availability).
+
+## 8. Frontend (React + Tailwind): clean, modern, responsive; light theme with a dark mode toggle; sidebar navigation
+1. Dashboard `/`: stat cards (meetings, pending tasks, overdue, decisions), upcoming deadlines list, recent meetings, recent decisions, Recharts bar chart (tasks per assignee) and line/bar chart (meetings over time), empty states with CTA to upload.
+2. Upload `/upload`: drag-and-drop zone (txt/docx/pdf/vtt/srt), optional title and date, multi-file upload, per-file progress, then polling of status (uploaded → processing → ready/failed) with a stepper; link to the meeting when ready.
+3. Meetings list `/meetings`: cards/table with title, date, participants, #actions, #decisions, status badge; search and sort.
+4. Meeting Workspace `/meetings/:id`: tabs: Summary (with a method toggle bart/t5/llm when available), Transcript (speaker-colored, searchable, anchors by utterance idx; opening via `?line=N` highlights and scrolls to that line), Topics & Entities (chips grouped by label), Decisions (with evidence quote, link to the line, superseded badge), Action Items (editable inline status/assignee/deadline; "inferred" badge when not explicit; evidence tooltip), Participants (talk-time bar chart), and a "Chat with this meeting" side panel.
+5. Ask Recall `/chat`: ChatGPT-style conversation list + thread, a meeting multi-select scope filter ("All meetings" default), suggested starter questions, assistant answers with inline [S#] chips and a Sources panel showing meeting title, date, and snippet that deep-links to `/meetings/:id?line=N`; loading state, error state, and a visible "not found in meetings" style for no-evidence answers.
+6. Action Tracker `/actions`: table + kanban toggle (Pending / In progress / Done) with drag-and-drop status change, filters (assignee, meeting, status, overdue), deadline coloring (overdue red, due soon amber), and evidence popover.
+7. Compare `/compare`: select 2-3 meetings, show the generated comparison plus side-by-side decisions/action items.
+8. Global: toasts, skeleton loaders, a settings/health page showing Ollama and model status. Typed API client in `src/api/`, no mock data in production code paths.
+
+## 9. Evaluation harness (`eval/`), mandatory; run with `make eval`, results written to `eval/results/` as CSV + a markdown report + PNG charts, and summarized in docs/EVALUATION.md
+- Gold data: generate 5 synthetic but realistic meetings in `eval/data/meetings/` (software-team, 600-1500 words each, 3-5 speakers; meetings 1-3 follow the database migration story: Nov 10 discuss migrating to PostgreSQL; Nov 12 decide PostgreSQL over MongoDB; Nov 15 migration delays and schema changes; include a later decision that reverses an earlier one in meeting 4 or 5, plus some unassigned tasks and some deadlines like "by Friday"). Write hand-checked gold JSON in `eval/data/gold/<meeting>.json` (entities, action items, decisions, summary key points) and `eval/data/qa_gold.json` with at least 30 questions (single-meeting, cross-meeting, "what changed", pending-tasks, and 4 unanswerable ones) each with expected answer keywords, gold meeting ids and gold evidence utterance ranges.
+- Summarization: ROUGE-1/2/L (rouge-score) for BART vs T5 vs LLM, on 100 samples of the DialogSum test split (HuggingFace `datasets`, skip gracefully if offline and say so) AND on the gold meetings' reference summaries.
+- NER: spaCy precision/recall/F1 per label vs gold entities (span-level, case-insensitive), with and without the EntityRuler.
+- Action extraction: P/R/F1 for rules vs LLM (a match = same assignee-normalized item with embedding similarity > 0.7 on the task) plus field accuracy for assignee and deadline separately.
+- Decision detection: P/R/F1 rules vs LLM.
+- Retrieval: Recall@1/3/5/10 and MRR comparing BM25 vs dense vs hybrid(RRF), using the gold evidence ranges.
+- QA: answer correctness (keyword-coverage score plus optional LLM-as-judge, flagged clearly), citation accuracy (fraction of cited sources overlapping gold evidence), citation precision/recall, and correct-refusal rate on unanswerable questions.
+- Everything is seeded and reproducible; each script is runnable on its own: `python -m eval.eval_retrieval`.
+
+## 10. Demo data
+Put 3 polished demo transcripts in `sample_data/` (the Nov 10, 12, 15 database-migration story, with speakers Rahul, Anshuman, Priya, Meera and the authentication-module/API-integration/testing tasks) and a `make seed` command that uploads them via the API and waits for processing. The demo questions that must work well:
+"What did we decide about the backend architecture?", "Who was assigned the authentication module?", "What tasks are still pending?", "Did we discuss the database migration in the previous meeting?", "What changed between the first and third meetings?", "What happened with our database migration?"
+
+## 11. Engineering requirements
+- `.env.example` with DATABASE_URL, OLLAMA_URL, OLLAMA_MODEL, EMBEDDING_MODEL, DATA_DIR, RUN_BASELINE_SUMMARIZERS, SUPERSESSION, LOG_LEVEL.
+- Makefile targets: `setup` (venv, deps, spaCy model, npm install), `db-up`, `migrate`, `models` (pre-download all HF/spaCy models and `ollama pull`), `backend`, `frontend`, `seed`, `test`, `eval`, `lint`.
+- docker-compose.yml: postgres only, with a volume and healthcheck.
+- README.md: prerequisites (Homebrew, Docker, Ollama), a step-by-step quickstart that works on macOS from a fresh clone, screenshots placeholder section, architecture diagram (Mermaid), the NLP technique table (task, technique, file, purpose), limitations.
+- docs/ARCHITECTURE.md: Mermaid diagrams of system architecture and the processing pipeline, and the ER diagram.
+- Type hints, docstrings on all NLP modules, structured logging, no hard-coded paths, graceful errors (Ollama not running gives a clear message and meetings still get NER/chunks/BART summary).
+- Backend tests: transcript parser (all formats), chunker, deadline resolution, evidence validation, hybrid RRF, citation verification, and API smoke tests (LLM mocked with a fake client). Frontend: smoke tests for the main pages.
+- Performance goal: a 1-hour (~8k words) transcript is fully processed in under ~5 minutes on the target machine using the default models.
+
+## 12. Build order (complete and test each phase before the next)
+1. Scaffold repo, docker-compose, DB models + migration, FastAPI skeleton, Vite app skeleton, health endpoint.
+2. Ingestion: parsers, transcript parser, chunker, upload endpoint, meeting list/detail/transcript endpoints, and a frontend upload + list + transcript view (first end-to-end vertical slice).
+3. NER, topics, summarization (all three methods), meeting workspace Summary/Topics tabs.
+4. Action and decision extraction (rules + LLM + validation), workspace tabs, Action Tracker page, dashboard.
+5. Embeddings, FAISS, BM25, hybrid retrieval, search endpoint.
+6. RAG chat with citations + deep links, conversations, scope filter, compare feature, chat UI.
+7. Supersession detection, polish, dark mode, empty/error states.
+8. Evaluation data + harness, run it, write docs/EVALUATION.md with the real numbers and a short analysis of results (model comparisons, failure cases).
+9. Seed data, README, architecture docs, final end-to-end verification.
+
+## 13. Acceptance criteria (verify each yourself before finishing and list the results at the end)
+- [ ] `make setup && make db-up && make migrate && make models && make backend` and `make frontend` start cleanly on macOS.
+- [ ] Uploading a TXT, DOCX and PDF transcript each produces a ready meeting with summary, topics, participants, decisions, and action items.
+- [ ] The Rahul/Anshuman example yields exactly three action items with the correct assignees; the first has deadline "Friday" resolved to a real date relative to the meeting date; the others show deadline "Not specified".
+- [ ] Every action item and decision has a validated evidence quote and utterance index, and the UI shows it.
+- [ ] All six demo questions return correct, cited answers from the seeded data; an unrelated question returns the no-evidence response with no citations.
+- [ ] Clicking a citation opens the transcript at the cited line, highlighted.
+- [ ] Action Tracker supports filtering, editing, and kanban status changes persisted to the DB.
+- [ ] `make test` passes; `make eval` runs end to end and produces the results tables and charts.
+- [ ] docs and README are complete and accurate.
+At the end, output a summary of what was built, the evaluation results table, known limitations, and any assumptions made.

@@ -1,0 +1,17 @@
+Rahul: We need to complete the authentication module by Friday.
+Anshuman: I'll handle the API integration.
+Priya: Great, I'll take care of testing.
+Meera: We should move our application database off the aging MySQL instance. The team has had slow queries and maintenance issues.
+Rahul: PostgreSQL is the leading option. We should compare it with MongoDB and check the migration effort before deciding.
+Anshuman: I can prepare a small benchmark and list the services that depend on the current schema.
+Priya: We also need to inventory reporting jobs and backups. I will ask the analytics team about their requirements.
+Meera: The migration should happen in stages. First we can rehearse against a staging copy, then move one low-risk service.
+Rahul: Let's capture the existing schema and query patterns. We do not have a firm cutover date yet.
+Anshuman: I'll share the benchmark results at the next architecture meeting.
+Priya: We need a rollback plan before anyone changes production data.
+Meera: The authentication module is still the near-term priority, and the Friday date is firm.
+Rahul: Please document the current database extensions and any vendor-specific SQL.
+Anshuman: I will check connection pooling and driver support for PostgreSQL.
+Priya: I'll coordinate a review with the data team.
+Meera: We should keep the application interface stable while we investigate storage choices.
+Rahul: No final database decision today. We need evidence about compatibility, operations, and performance first.

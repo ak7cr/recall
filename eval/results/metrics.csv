@@ -1,0 +1,21 @@
+component,metric,value
+action fixture consistency,precision,1.0
+action fixture consistency,recall,1.0
+action fixture consistency,f1,1.0
+decision fixture consistency,precision,1.0
+decision fixture consistency,recall,1.0
+decision fixture consistency,f1,1.0
+retrieval hybrid,recall@1,0.23563218390804597
+retrieval hybrid,recall@3,0.6724137931034483
+retrieval hybrid,recall@5,1.0
+retrieval hybrid,recall@10,1.0
+retrieval hybrid,mrr,0.6086206896551724
+QA inventory,questions,33
+QA inventory,unanswerable,4
+QA inventory,note,Live answer/citation scores require Recall API and Ollama.
+NER,status,optional spaCy en_core_web_lg required
+NER,precision,not measured
+NER,recall,not measured
+NER,f1,not measured
+summarization,dialogsum,skipped (offline-safe harness; datasets/weights not downloaded)
+summarization,gold_rouge_l,not run without reference outputs

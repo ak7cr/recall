@@ -1,0 +1,16 @@
+Rahul: We reviewed the database benchmark and compatibility notes.
+Anshuman: PostgreSQL handled the relational workload and reporting queries well. MongoDB would require larger changes to the services that join customer and invoice records.
+Priya: The analytics group also depends on SQL exports, so a relational database is a better fit.
+Meera: We decided to use PostgreSQL for the migration, with a staged rollout and a tested rollback plan.
+Rahul: We will keep MongoDB out of the current scope. The decision is PostgreSQL, but production cutover waits for a rehearsal.
+Anshuman: I'll handle the API integration and update the connection configuration for the staging environment.
+Priya: Great, I'll take care of testing the new driver and representative reporting queries.
+Rahul: We need to complete the authentication module by Friday. Anshuman, please prepare the schema compatibility report by Friday too.
+Meera: I will coordinate with operations on backups and monitoring. The rehearsal should include restore verification.
+Anshuman: The current schema has a few implicit integer conversions. I will document them before the rehearsal.
+Priya: We should validate row counts and key constraints before and after each rehearsal run.
+Rahul: The migration plan is staged: schema review, rehearsal, service pilot, then a broader rollout after approval.
+Meera: We do not yet have a production date. Let's meet after the rehearsal results.
+Anshuman: I can add a compatibility test to CI so future schema changes are caught earlier.
+Priya: I'll send the reporting query set to the team tomorrow.
+Rahul: Agreed, we have selected PostgreSQL over MongoDB for this project.

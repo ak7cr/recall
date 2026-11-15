@@ -1,0 +1,16 @@
+Meera: The PostgreSQL rehearsal found schema changes that were not in the original inventory.
+Anshuman: Two legacy services use nullable timestamps differently, and one report assumes integer IDs. The conversion needs more work.
+Priya: The row-count checks passed, but one reporting query is slower until we add an index.
+Rahul: We decided to delay the pilot until the schema compatibility fixes and performance test are complete.
+Meera: We are still going with PostgreSQL. The delay is about readiness, not a change of database choice.
+Anshuman: I'll update the migration scripts and add the missing timestamp cases.
+Priya: I can add the reporting index test and rerun the query suite.
+Rahul: Please send the updated compatibility report by Monday.
+Meera: Operations verified the restore procedure, but we still need a final alerting check.
+Anshuman: The API integration is in staging. The authentication module is complete, and its tests pass.
+Priya: Testing found one retry issue in the migration job. I will add coverage for interrupted runs.
+Rahul: We should keep the production rollout unscheduled until the rehearsals are repeatable.
+Meera: Next meeting we will review the fixed schema, query latency, and rollback evidence.
+Anshuman: I'll publish the updated migration checklist today.
+Priya: The data team has approved the staged validation approach.
+Rahul: The selected backend architecture remains PostgreSQL with application-level migration scripts.
