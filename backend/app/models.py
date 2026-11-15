@@ -6,7 +6,7 @@ from .db import Base
 def uid(): return str(uuid.uuid4())
 class Meeting(Base):
     __tablename__="meetings"
-    id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid); title:Mapped[str]=mapped_column(String(300)); meeting_date:Mapped[date]=mapped_column(Date); source_filename:Mapped[str|None]=mapped_column(String(500)); raw_text:Mapped[str]=mapped_column(Text); status:Mapped[str]=mapped_column(String(20),default="uploaded",index=True); error_message:Mapped[str|None]=mapped_column(Text); duration_seconds:Mapped[float|None]=mapped_column(Float); created_at:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
+    id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid); title:Mapped[str]=mapped_column(String(300)); meeting_date:Mapped[date]=mapped_column(Date); source_filename:Mapped[str|None]=mapped_column(String(500)); raw_text:Mapped[str]=mapped_column(Text); status:Mapped[str]=mapped_column(String(20),default="uploaded",index=True); error_message:Mapped[str|None]=mapped_column(Text); duration_seconds:Mapped[float|None]=mapped_column(Float); processing_metadata:Mapped[dict|None]=mapped_column(JSON); created_at:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
 class Participant(Base):
     __tablename__="participants"
     id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid); meeting_id:Mapped[str]=mapped_column(ForeignKey("meetings.id",ondelete="CASCADE"),index=True); speaker_name:Mapped[str]=mapped_column(String(200)); utterance_count:Mapped[int]=mapped_column(Integer,default=0); word_count:Mapped[int]=mapped_column(Integer,default=0)

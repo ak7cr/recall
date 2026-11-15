@@ -31,7 +31,7 @@ def chat(req:ChatRequest):
   for x in q.limit(30):
    m=d.get(Meeting,x.meeting_id);docs.append(dict(id=x.id,meeting_id=x.meeting_id,title=m.title,date=m.meeting_date,text=f"Decision: {x.decision}; evidence: {x.evidence_quote}",start=x.evidence_utterance_idx,end=x.evidence_utterance_idx,type="decision"))
  docs=sorted(docs,key=lambda x:(x["date"],x["start"]))[:10];result=answer(question,docs,client)
- d.add(Message(conversation_id=conv.id,role="assistant",content=result["answer"],citations=result["citations"]));d.commit(); result.update(conversation_id=conv.id);d.close();return result
+ d.add(Message(conversation_id=conv.id,role="assistant",content=result["answer"],citations=result["citations"]));d.commit(); result.update(conversation_id=conv.id,retrieval_mode="hybrid",retrieved_sources=len(docs));d.close();return result
 @router.get("/conversations/{conversation_id}")
 def conversation(conversation_id:str):
  d=SessionLocal();r={"id":conversation_id,"messages":[{"role":x.role,"content":x.content,"citations":x.citations} for x in d.query(Message).filter_by(conversation_id=conversation_id).order_by(Message.created_at)]};d.close();return r

@@ -1,35 +1,671 @@
 [
- {"question":"What did we decide about the database?","expected_keywords":["PostgreSQL"],"meeting_ids":["meeting2"],"evidence_ranges":[[1,20]]},
- {"question":"What happened with migration from start to rehearsal?","expected_keywords":["benchmark","rehearsal"],"meeting_ids":["meeting1","meeting2","meeting3"],"evidence_ranges":[[1,25]]},
- {"question":"Why was the pilot delayed?","expected_keywords":["schema","compatibility"],"meeting_ids":["meeting3"],"evidence_ranges":[[1,20]]},
- {"question":"What changed in meeting four?","expected_keywords":["MongoDB","vendor"],"meeting_ids":["meeting4"],"evidence_ranges":[[1,20]]},
- {"question":"Which database supports internal reporting?","expected_keywords":["PostgreSQL"],"meeting_ids":["meeting4","meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"Which database does the vendor-facing service use?","expected_keywords":["MongoDB"],"meeting_ids":["meeting4","meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"Who owns the reporting mirror?","expected_keywords":["Anshuman"],"meeting_ids":["meeting4","meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"When is the compatibility report due?","expected_keywords":["Monday"],"meeting_ids":["meeting3"],"evidence_ranges":[[1,20]]},
- {"question":"What task is due Friday in kickoff?","expected_keywords":["authentication"],"meeting_ids":["meeting1"],"evidence_ranges":[[1,20]]},
- {"question":"Who tests the new driver?","expected_keywords":["Priya"],"meeting_ids":["meeting2"],"evidence_ranges":[[1,20]]},
- {"question":"What did operations verify?","expected_keywords":["restore"],"meeting_ids":["meeting3","meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"What was the original database decision?","expected_keywords":["PostgreSQL","MongoDB"],"meeting_ids":["meeting2","meeting4"],"evidence_ranges":[[1,20]]},
- {"question":"What remains unassigned?","expected_keywords":["onboarding"],"meeting_ids":["meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"What did Priya find in the migration job?","expected_keywords":["retry"],"meeting_ids":["meeting3"],"evidence_ranges":[[1,20]]},
- {"question":"Is production cutover scheduled?","expected_keywords":["No","date"],"meeting_ids":["meeting1","meeting3"],"evidence_ranges":[[1,20]]},
- {"question":"What was the database benchmark result?","expected_keywords":["relational","reporting"],"meeting_ids":["meeting2"],"evidence_ranges":[[1,20]]},
- {"question":"Which tasks did Anshuman take?","expected_keywords":["scripts","mirror"],"meeting_ids":["meeting3","meeting4","meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"What is the agreed rollout approach?","expected_keywords":["staged","rollback"],"meeting_ids":["meeting2","meeting3"],"evidence_ranges":[[1,20]]},
- {"question":"Which system provides analytics exports?","expected_keywords":["SQL","PostgreSQL"],"meeting_ids":["meeting1","meeting2"],"evidence_ranges":[[1,20]]},
- {"question":"What changed between the first and third meetings?","expected_keywords":["rehearsal","delay"],"meeting_ids":["meeting1","meeting3"],"evidence_ranges":[[1,20]]},
- {"question":"What is the current database architecture?","expected_keywords":["MongoDB","PostgreSQL"],"meeting_ids":["meeting4","meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"Who owns the schema compatibility report?","expected_keywords":["Anshuman"],"meeting_ids":["meeting2","meeting3"],"evidence_ranges":[[1,20]]},
- {"question":"What did the team decide about MongoDB in meeting two?","expected_keywords":["out","PostgreSQL"],"meeting_ids":["meeting2"],"evidence_ranges":[[1,20]]},
- {"question":"What is the deadline for Priya's report?","expected_keywords":["Friday"],"meeting_ids":["meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"What database does internal reporting use now?","expected_keywords":["PostgreSQL"],"meeting_ids":["meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"How do they prevent replication conflicts?","expected_keywords":["writes","mirror"],"meeting_ids":["meeting4","meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"What was completed about authentication?","expected_keywords":["complete","tests"],"meeting_ids":["meeting3","meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"What should happen before production changes?","expected_keywords":["review"],"meeting_ids":["meeting4"],"evidence_ranges":[[1,20]]},
- {"question":"What is the freshness window result?","expected_keywords":["consistent","freshness"],"meeting_ids":["meeting5"],"evidence_ranges":[[1,20]]},
- {"question":"Who is assigned to test migration scripts?","expected_keywords":["nobody"],"meeting_ids":[],"evidence_ranges":[],"unanswerable":true},
- {"question":"What was the exact production cutover hour?","expected_keywords":[],"meeting_ids":[],"evidence_ranges":[],"unanswerable":true},
- {"question":"Which office hosted the meeting?","expected_keywords":[],"meeting_ids":[],"evidence_ranges":[],"unanswerable":true},
- {"question":"What was Rahul's personal phone number?","expected_keywords":[],"meeting_ids":[],"evidence_ranges":[],"unanswerable":true}
+  {
+    "question": "What did we decide about the database?",
+    "expected_keywords": [
+      "PostgreSQL"
+    ],
+    "meeting_ids": [
+      "meeting2"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What happened with migration from start to rehearsal?",
+    "expected_keywords": [
+      "benchmark",
+      "rehearsal"
+    ],
+    "meeting_ids": [
+      "meeting1",
+      "meeting2",
+      "meeting3"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        25
+      ]
+    ]
+  },
+  {
+    "question": "Why was the pilot delayed?",
+    "expected_keywords": [
+      "schema",
+      "compatibility"
+    ],
+    "meeting_ids": [
+      "meeting3"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What changed in meeting four?",
+    "expected_keywords": [
+      "MongoDB",
+      "vendor"
+    ],
+    "meeting_ids": [
+      "meeting4"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "Which database supports internal reporting?",
+    "expected_keywords": [
+      "PostgreSQL"
+    ],
+    "meeting_ids": [
+      "meeting4",
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "Which database does the vendor-facing service use?",
+    "expected_keywords": [
+      "MongoDB"
+    ],
+    "meeting_ids": [
+      "meeting4",
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "Who owns the reporting mirror?",
+    "expected_keywords": [
+      "Anshuman"
+    ],
+    "meeting_ids": [
+      "meeting4",
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "When is the compatibility report due?",
+    "expected_keywords": [
+      "Monday"
+    ],
+    "meeting_ids": [
+      "meeting3"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What task is due Friday in kickoff?",
+    "expected_keywords": [
+      "authentication"
+    ],
+    "meeting_ids": [
+      "meeting1"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "Who tests the new driver?",
+    "expected_keywords": [
+      "Priya"
+    ],
+    "meeting_ids": [
+      "meeting2"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What did operations verify?",
+    "expected_keywords": [
+      "restore"
+    ],
+    "meeting_ids": [
+      "meeting3",
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What was the original database decision?",
+    "expected_keywords": [
+      "PostgreSQL",
+      "MongoDB"
+    ],
+    "meeting_ids": [
+      "meeting2",
+      "meeting4"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What remains unassigned?",
+    "expected_keywords": [
+      "onboarding"
+    ],
+    "meeting_ids": [
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What did Priya find in the migration job?",
+    "expected_keywords": [
+      "retry"
+    ],
+    "meeting_ids": [
+      "meeting3"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "Is production cutover scheduled?",
+    "expected_keywords": [
+      "No",
+      "date"
+    ],
+    "meeting_ids": [
+      "meeting1",
+      "meeting3"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What was the database benchmark result?",
+    "expected_keywords": [
+      "relational",
+      "reporting"
+    ],
+    "meeting_ids": [
+      "meeting2"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "Which tasks did Anshuman take?",
+    "expected_keywords": [
+      "scripts",
+      "mirror"
+    ],
+    "meeting_ids": [
+      "meeting3",
+      "meeting4",
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What is the agreed rollout approach?",
+    "expected_keywords": [
+      "staged",
+      "rollback"
+    ],
+    "meeting_ids": [
+      "meeting2",
+      "meeting3"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "Which system provides analytics exports?",
+    "expected_keywords": [
+      "SQL",
+      "PostgreSQL"
+    ],
+    "meeting_ids": [
+      "meeting1",
+      "meeting2"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What changed between the first and third meetings?",
+    "expected_keywords": [
+      "rehearsal",
+      "delay"
+    ],
+    "meeting_ids": [
+      "meeting1",
+      "meeting3"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What is the current database architecture?",
+    "expected_keywords": [
+      "MongoDB",
+      "PostgreSQL"
+    ],
+    "meeting_ids": [
+      "meeting4",
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "Who owns the schema compatibility report?",
+    "expected_keywords": [
+      "Anshuman"
+    ],
+    "meeting_ids": [
+      "meeting2",
+      "meeting3"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What did the team decide about MongoDB in meeting two?",
+    "expected_keywords": [
+      "out",
+      "PostgreSQL"
+    ],
+    "meeting_ids": [
+      "meeting2"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What is the deadline for Priya's report?",
+    "expected_keywords": [
+      "Friday"
+    ],
+    "meeting_ids": [
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What database does internal reporting use now?",
+    "expected_keywords": [
+      "PostgreSQL"
+    ],
+    "meeting_ids": [
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "How do they prevent replication conflicts?",
+    "expected_keywords": [
+      "writes",
+      "mirror"
+    ],
+    "meeting_ids": [
+      "meeting4",
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What was completed about authentication?",
+    "expected_keywords": [
+      "complete",
+      "tests"
+    ],
+    "meeting_ids": [
+      "meeting3",
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What should happen before production changes?",
+    "expected_keywords": [
+      "review"
+    ],
+    "meeting_ids": [
+      "meeting4"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "What is the freshness window result?",
+    "expected_keywords": [
+      "consistent",
+      "freshness"
+    ],
+    "meeting_ids": [
+      "meeting5"
+    ],
+    "evidence_ranges": [
+      [
+        1,
+        20
+      ]
+    ]
+  },
+  {
+    "question": "Who is assigned to test migration scripts?",
+    "expected_keywords": [
+      "nobody"
+    ],
+    "meeting_ids": [],
+    "evidence_ranges": [],
+    "unanswerable": true
+  },
+  {
+    "question": "What was the exact production cutover hour?",
+    "expected_keywords": [],
+    "meeting_ids": [],
+    "evidence_ranges": [],
+    "unanswerable": true
+  },
+  {
+    "question": "Which office hosted the meeting?",
+    "expected_keywords": [],
+    "meeting_ids": [],
+    "evidence_ranges": [],
+    "unanswerable": true
+  },
+  {
+    "question": "What was Rahul's personal phone number?",
+    "expected_keywords": [],
+    "meeting_ids": [],
+    "evidence_ranges": [],
+    "unanswerable": true
+  },
+  {
+    "question": "Who owns the migration job but was absent?",
+    "expected_keywords": [
+      "Karthik"
+    ],
+    "meeting_ids": [
+      "meeting6"
+    ],
+    "evidence_ranges": {
+      "meeting6": [
+        [
+          1,
+          8
+        ]
+      ]
+    }
+  },
+  {
+    "question": "Who is implicitly expected to finish the schema inventory?",
+    "expected_keywords": [
+      "Anshuman"
+    ],
+    "meeting_ids": [
+      "meeting6"
+    ],
+    "evidence_ranges": {
+      "meeting6": [
+        [
+          6,
+          7
+        ]
+      ]
+    }
+  },
+  {
+    "question": "Which task remains unassigned?",
+    "expected_keywords": [
+      "missing-owner"
+    ],
+    "meeting_ids": [
+      "meeting6"
+    ],
+    "evidence_ranges": {
+      "meeting6": [
+        [
+          8,
+          8
+        ]
+      ]
+    }
+  },
+  {
+    "question": "What decision was reversed in meeting seven?",
+    "expected_keywords": [
+      "MongoDB",
+      "PostgreSQL"
+    ],
+    "meeting_ids": [
+      "meeting4",
+      "meeting7"
+    ],
+    "evidence_ranges": {
+      "meeting4": [
+        [
+          1,
+          30
+        ]
+      ],
+      "meeting7": [
+        [
+          1,
+          8
+        ]
+      ]
+    }
+  },
+  {
+    "question": "What condition must pass before migrating the vendor service?",
+    "expected_keywords": [
+      "rehearsal",
+      "recovery"
+    ],
+    "meeting_ids": [
+      "meeting7"
+    ],
+    "evidence_ranges": {
+      "meeting7": [
+        [
+          1,
+          8
+        ]
+      ]
+    }
+  },
+  {
+    "question": "What risks did the long readiness review cover?",
+    "expected_keywords": [
+      "schema",
+      "recovery",
+      "observability"
+    ],
+    "meeting_ids": [
+      "meeting8"
+    ],
+    "evidence_ranges": {
+      "meeting8": [
+        [
+          1,
+          49
+        ]
+      ]
+    }
+  },
+  {
+    "question": "What did the long meeting say about rollback?",
+    "expected_keywords": [
+      "rollback",
+      "pause"
+    ],
+    "meeting_ids": [
+      "meeting8"
+    ],
+    "evidence_ranges": {
+      "meeting8": [
+        [
+          1,
+          49
+        ]
+      ]
+    }
+  },
+  {
+    "question": "Who must review the restore sequence?",
+    "expected_keywords": [
+      "Karthik"
+    ],
+    "meeting_ids": [
+      "meeting6"
+    ],
+    "evidence_ranges": {
+      "meeting6": [
+        [
+          2,
+          2
+        ]
+      ]
+    }
+  },
+  {
+    "question": "Did the group approve an immediate production cutover in the long meeting?",
+    "expected_keywords": [
+      "no"
+    ],
+    "meeting_ids": [
+      "meeting8"
+    ],
+    "evidence_ranges": {
+      "meeting8": [
+        [
+          1,
+          49
+        ]
+      ]
+    }
+  },
+  {
+    "question": "What is the private address of the absent participant?",
+    "expected_keywords": [],
+    "meeting_ids": [],
+    "evidence_ranges": [],
+    "unanswerable": true
+  }
 ]

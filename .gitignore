@@ -4,11 +4,14 @@ backend/.venv/
 backend/*.db
 backend/*.db-shm
 backend/*.db-wal
+backend/*.egg-info/
+*.db
 __pycache__/
 *.py[cod]
 frontend/node_modules/
 frontend/dist/
 frontend/coverage/
+frontend/*.tsbuildinfo
 data/*.index
-eval/results/*.csv
-eval/results/*.png
+data/cache/
+data/matplotlib/

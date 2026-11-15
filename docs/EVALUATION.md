@@ -1,7 +1,20 @@
 # Evaluation protocol
 
-`eval/run_eval.py` is a deterministic baseline harness over the bundled examples. It reports action-item evidence precision/recall/F1 and retrieval hit rate; metric helpers also expose ROUGE-L and entity/action overlap primitives. Add transcript files under `eval/data/meetings`, matching annotations in `eval/data/gold`, and QA rows in `qa_gold.json`.
+`eval/run_eval.py` evaluates against independent hand-authored annotations. Run `make eval` to write CSV, Markdown, and a PNG chart using only the Python standard library for chart rendering.
 
-For academic comparisons, record model, prompt, dependency versions, hardware, and whether each optional model loaded. Compare rule vs LLM extraction with exact/normalized matching; report evidence validity separately. Retrieval reports hit@k and reciprocal rank. Summarization should be assessed with ROUGE-L plus human factuality review. Results are written as CSV and Markdown under `eval/results`.
+The harness reports measured BM25 retrieval and rules-based decision detection. BART/T5/DialogSum, span-level NER, live Ollama QA/citation, dense retrieval, and action rules-versus-LLM comparisons are marked “not run” when their model/runtime requirements are absent. No gold-self-comparison metric is reported. Model metadata and skip reasons are recorded in `eval/results/report.md`.
 
-The current harness reports fixture consistency and lexical retrieval only. BART/T5/DialogSum, span-level NER, live Ollama QA/citation, dense retrieval, and rules-versus-LLM comparisons are not measured without their model/runtime requirements. Fixture consistency is not a claim of model accuracy. The QA fixture contains 33 questions, including four unanswerable prompts.
+## Latest local run
+
+| Metric | Result |
+|---|---:|
+| BM25 recall@1 | 0.086 |
+| BM25 recall@3 | 0.161 |
+| BM25 recall@5 | 0.246 |
+| BM25 recall@10 | 0.366 |
+| BM25 MRR | 0.453 |
+| Rules decision precision / recall / F1 | 0.238 / 0.833 / 0.370 |
+| Live QA | Not run: Recall API is not running |
+| QA inventory | 43 questions (5 unanswerable) |
+
+Action extraction is not run because MiniLM weights are unavailable and task matching requires embedding cosine. Dense and hybrid retrieval are not substituted with BM25; they are marked not run because all-MiniLM-L6-v2 is not loaded. The corpus has eight synthetic meetings, including one 3,235-word transcript, an implicit owner, an unassigned task, a decision reversal, and an absent participant mentioned by name. Summarization, NER, live QA, and LLM decision extraction are not run because their local model runtimes are unavailable.

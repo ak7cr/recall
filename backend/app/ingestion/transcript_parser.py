@@ -10,10 +10,11 @@ def seconds(s):
     try: return sum(int(v)*m for v,m in zip(s.split(":"),(3600,60,1)))
     except Exception: return None
 def parse_transcript(raw):
-    lines=raw.replace("\r","").splitlines(); result=[]
+    lines=raw.replace("\r","").splitlines(); result=[];paragraph_break=False
     for line in lines:
         line=line.strip()
-        if not line or re.fullmatch(r"(?:WEBVTT|\d+|\d{2}:\d{2}:\d{2}[,.]\d{3} --> .*)",line): continue
+        if not line:paragraph_break=True;continue
+        if re.fullmatch(r"(?:WEBVTT|\d+|\d{2}:\d{2}:\d{2}[,.]\d{3} --> .*)",line):continue
         found=None
         m=PATTERNS[1].match(line)
         if m: found=(m.group(1),m.group(3),seconds(m.group(2)))
@@ -26,6 +27,8 @@ def parse_transcript(raw):
         if found:
             name,text,ts=found; key=" ".join(name.strip().split()).title()
             result.append(ParsedUtterance(len(result)+1,key,text.strip(),ts,None))
+        elif result and paragraph_break:result.append(ParsedUtterance(len(result)+1,"Unknown",line))
         elif result: result[-1].text += " "+line
         else: result.append(ParsedUtterance(1,"Unknown",line))
+        paragraph_break=False
     return [ParsedUtterance(i+1,u.speaker,u.text,u.start_ts,u.end_ts) for i,u in enumerate(result) if u.text]

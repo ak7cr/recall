@@ -1,13 +1,39 @@
+"""Recall@k and MRR measured against the independently annotated evidence ranges."""
 from pathlib import Path
 import json
-from eval.metrics import precision_recall_f1
 from backend.app.knowledge.hybrid import retrieve
-def run():
-    root=Path(__file__).parent;docs=[]
-    for p in sorted((root/'data/meetings').glob('*.txt')): docs.append({"id":p.stem,"meeting_id":p.stem,"title":p.stem,"date":p.stem,"text":p.read_text(),"start":1,"end":25,"type":"meeting"})
-    q=json.loads((root/'data/qa_gold.json').read_text());hits=[];ranks=[]
-    for item in q:
+from backend.app.knowledge.embeddings import loaded
+from backend.app.ingestion.transcript_parser import parse_transcript
+from backend.app.ingestion.chunker import chunk_utterances
+ROOT=Path(__file__).parent
+def _metrics(mode,docs,questions):
+    recalls={k:[] for k in [1,3,5,10]};rr=[]
+    for item in questions:
         if item.get('unanswerable'):continue
-        rows=retrieve(item['question'],docs,top_k=10);rank=next((i+1 for i,x in enumerate(rows) if x['meeting_id'] in item['meeting_ids']),None);ranks.append(1/rank if rank else 0)
-        hits.append({f"recall@{k}":sum(any(mid==x['meeting_id'] for x in rows[:k]) for mid in item['meeting_ids'])/max(1,len(item['meeting_ids'])) for k in [1,3,5,10]})
-    return {f"recall@{k}":sum(x[f"recall@{k}"] for x in hits)/max(1,len(hits)) for k in [1,3,5,10]}|{"mrr":sum(ranks)/max(1,len(ranks))}
+        ranges=item.get('evidence_ranges',{})
+        if isinstance(ranges,list):ranges={mid:ranges for mid in item.get('meeting_ids',[])}
+        relevant=set()
+        for d in docs:
+            for start,end in ranges.get(d['meeting_id'],[]):
+                if d['start']<=end and d['end']>=start:relevant.add(d['id'])
+        if not relevant:continue
+        ranked=retrieve(item['question'],docs,mode=mode,top_k=max(10,len(docs)))
+        rel=[int(d['id'] in relevant) for d in ranked]
+        first=next((i+1 for i,x in enumerate(rel) if x),None);rr.append(1/first if first else 0)
+        for k in recalls:recalls[k].append(sum(rel[:k])/len(relevant))
+    return {**{f'recall@{k}':sum(v)/max(1,len(v)) for k,v in recalls.items()},'mrr':sum(rr)/max(1,len(rr))}
+def run():
+    docs=[]
+    for path in sorted((ROOT/'data/meetings').glob('*.txt')):
+        rows=parse_transcript(path.read_text())
+        for idx,(start,end,content) in enumerate(chunk_utterances(rows)):
+            docs.append({"id":f'{path.stem}:{idx}',"meeting_id":path.stem,"title":path.stem,"text":content,"start":start,"end":end,"type":"meeting"})
+    questions=json.loads((ROOT/'data/qa_gold.json').read_text())
+    result={"bm25":{"status":"measured","metrics":_metrics('bm25',docs,questions)}}
+    if not loaded():
+        reason="all-MiniLM-L6-v2 weights are not loaded; dense and hybrid results are not reported as lexical substitutes"
+        result['dense']={"status":"not run","reason":reason};result['hybrid']={"status":"not run","reason":reason}
+    else:
+        result['dense']={"status":"measured","metrics":_metrics('dense',docs,questions)}
+        result['hybrid']={"status":"measured","metrics":_metrics('hybrid',docs,questions)}
+    return result

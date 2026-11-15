@@ -8,9 +8,9 @@ from ..pipeline import process_meeting
 router=APIRouter()
 def detail(db,m):
     def all_(model): return db.query(model).filter_by(meeting_id=m.id).all()
-    return {"id":m.id,"title":m.title,"meeting_date":str(m.meeting_date),"source_filename":m.source_filename,"status":m.status,"error_message":m.error_message,"created_at":m.created_at.isoformat(),"summaries":[{"method":x.method,"summary_text":x.summary_text,"is_primary":x.is_primary} for x in all_(Summary)],"topics":[{"topic":x.topic,"score":x.score} for x in all_(Topic)],"participants":[{"speaker_name":x.speaker_name,"utterance_count":x.utterance_count,"word_count":x.word_count} for x in all_(Participant)],"entities":[{"text":x.text,"label":x.label,"utterance_idx":x.utterance_idx} for x in all_(Entity)],"decisions":[{"id":x.id,"decision":x.decision,"topic":x.topic,"status":x.status,"evidence_quote":x.evidence_quote,"evidence_utterance_idx":x.evidence_utterance_idx} for x in all_(Decision)],"action_items":[{"id":x.id,"task":x.task,"assignee":x.assignee,"deadline_text":x.deadline_text,"deadline_date":str(x.deadline_date) if x.deadline_date else None,"status":x.status,"assignee_explicit":x.assignee_explicit,"deadline_explicit":x.deadline_explicit,"evidence_quote":x.evidence_quote,"evidence_utterance_idx":x.evidence_utterance_idx} for x in all_(ActionItem)]}
+    return {"id":m.id,"title":m.title,"meeting_date":str(m.meeting_date),"source_filename":m.source_filename,"status":m.status,"error_message":m.error_message,"processing_metadata":m.processing_metadata,"created_at":m.created_at.isoformat(),"summaries":[{"method":x.method,"summary_text":x.summary_text,"is_primary":x.is_primary} for x in all_(Summary)],"topics":[{"topic":x.topic,"score":x.score} for x in all_(Topic)],"participants":[{"speaker_name":x.speaker_name,"utterance_count":x.utterance_count,"word_count":x.word_count} for x in all_(Participant)],"entities":[{"text":x.text,"label":x.label,"utterance_idx":x.utterance_idx} for x in all_(Entity)],"decisions":[{"id":x.id,"decision":x.decision,"topic":x.topic,"status":x.status,"evidence_quote":x.evidence_quote,"evidence_utterance_idx":x.evidence_utterance_idx,"extraction_method":x.extraction_method} for x in all_(Decision)],"action_items":[{"id":x.id,"task":x.task,"assignee":x.assignee,"deadline_text":x.deadline_text,"deadline_date":str(x.deadline_date) if x.deadline_date else None,"status":x.status,"assignee_explicit":x.assignee_explicit,"deadline_explicit":x.deadline_explicit,"evidence_quote":x.evidence_quote,"evidence_utterance_idx":x.evidence_utterance_idx,"extraction_method":x.extraction_method} for x in all_(ActionItem)]}
 @router.post("/meetings",status_code=202)
-async def upload(background:BackgroundTasks,file:UploadFile=File(...),title:str|None=Form(None),meeting_date:str|None=Form(None),db=None):
+async def upload(background:BackgroundTasks,file:UploadFile=File(...),title:str|None=Form(None),meeting_date:str|None=Form(None)):
     from ..db import SessionLocal
     db=SessionLocal()
     try:
@@ -33,7 +33,7 @@ async def upload(background:BackgroundTasks,file:UploadFile=File(...),title:str|
         return {"id":mid,"status":"uploaded"}
     finally: db.close()
 @router.get("/meetings")
-def list_meetings(q:str|None=None,status:str|None=None,db=None):
+def list_meetings(q:str|None=None,status:str|None=None):
     from ..db import SessionLocal
     d=SessionLocal()
     try:
@@ -59,7 +59,7 @@ def status(meeting_id:str):
     from ..db import SessionLocal
     d=SessionLocal();m=d.get(Meeting,meeting_id)
     if not m:d.close();raise HTTPException(404,"Meeting not found")
-    r={"id":m.id,"status":m.status,"error_message":m.error_message};d.close();return r
+    r={"id":m.id,"status":m.status,"error_message":m.error_message,"processing_metadata":m.processing_metadata};d.close();return r
 @router.post("/meetings/{meeting_id}/reprocess",status_code=202)
 def reprocess(meeting_id:str,background:BackgroundTasks):
     from ..db import SessionLocal

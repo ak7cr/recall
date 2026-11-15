@@ -1,4 +1,5 @@
 _model=None
+def loaded(): return _model is not None
 def encode(texts):
     global _model
     try:

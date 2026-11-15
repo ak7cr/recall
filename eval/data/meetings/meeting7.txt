@@ -1,0 +1,8 @@
+Rahul: The vendor integration now offers a supported PostgreSQL connector, so we can reconsider the split database architecture.
+Anshuman: The connector passed the basic read and write checks, but we still need load and recovery tests.
+Priya: I compared report values and found them consistent on the new connector.
+Meera: We decided to migrate the vendor-facing service to PostgreSQL after a staged rehearsal; this reverses the MongoDB exception recorded earlier.
+Rahul: The cutover remains conditional on a verified restore and support approval.
+Priya: Karthik could not attend, so I will send him the validation results for review.
+Anshuman: The current mirror can be retired only after reconciliation passes twice.
+Meera: Please keep both decisions in the history and link the new decision to the earlier exception.

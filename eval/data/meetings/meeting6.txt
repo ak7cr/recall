@@ -1,0 +1,8 @@
+Rahul: We need to decide how to document implicit ownership for the schema inventory.
+Meera: Karthik is absent today, but he owns the migration job and should review the restore sequence.
+Anshuman: The runbook needs a restart section and a list of records that cannot be mapped safely.
+Priya: I can validate the report outputs, while the remaining dataset review would fit Anshuman based on the work he already started.
+Rahul: We agreed to keep the original PostgreSQL reporting store and MongoDB vendor boundary.
+Meera: The owner for the new schema inventory was not stated as a direct assignment; the notes imply Anshuman should finish it before the next review.
+Anshuman: I will share the restart run and compatibility notes by Friday.
+Priya: The missing-owner task should remain visibly unassigned until Anshuman confirms it.
