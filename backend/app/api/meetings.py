@@ -2,6 +2,7 @@ from fastapi import APIRouter,UploadFile,File,Form,HTTPException,BackgroundTasks
 from datetime import date,datetime
 from ..models import Meeting,Utterance,Participant,Summary,Topic,Entity,ActionItem,Decision,MeetingChunk,VectorDoc
 from ..schemas import CompareRequest
+from ..config import settings
 from ..ingestion.parsers import extract_text
 from ..pipeline import process_meeting
 router=APIRouter()
@@ -14,7 +15,7 @@ async def upload(background:BackgroundTasks,file:UploadFile=File(...),title:str|
     db=SessionLocal()
     try:
         data=await file.read()
-        if len(data)>10*1024*1024: raise HTTPException(413,"File exceeds 10 MB")
+        if len(data)>settings.max_upload_mb*1024*1024: raise HTTPException(413,f"File exceeds {settings.max_upload_mb} MB")
         try:text=extract_text(file.filename or "transcript.txt",data)
         except ValueError as e: raise HTTPException(415,str(e))
         parsed=None

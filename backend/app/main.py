@@ -6,7 +6,7 @@ from .db import Base,engine
 from .config import settings
 from .api import meetings,actions,decisions,chat,search,dashboard
 from .models import Meeting
-logging.basicConfig(level=logging.INFO,format="%(asctime)s %(levelname)s %(name)s %(message)s")
+logging.basicConfig(level=getattr(logging,settings.log_level.upper(),logging.INFO),format="%(asctime)s %(levelname)s %(name)s %(message)s")
 Base.metadata.create_all(bind=engine)
 app=FastAPI(title="Recall Meeting Intelligence",version="0.1.0",description="Local-first conversational meeting intelligence with evidence citations")
 app.add_middleware(CORSMiddleware,allow_origins=["http://localhost:5173"],allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
