@@ -15,3 +15,4 @@ frontend/*.tsbuildinfo
 data/*.index
 data/cache/
 data/matplotlib/
+RECALL_SPEC.md
