@@ -1,3 +1,35 @@
-<script type="module" crossorigin src="/assets/index-MQy3vWoW.js"></script>
-<link rel="stylesheet" crossorigin href="/assets/index-CN6NnJ07.css">
-<div id="root"></div>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Recall is a local-first meeting intelligence workspace: summaries, decisions, action items, and cited answers across your meeting history."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#090d17" media="(prefers-color-scheme: dark)" />
+    <title>Recall · Meeting intelligence</title>
+    <script>
+      // Apply the saved theme before first paint to avoid a flash of the wrong scheme.
+      (function () {
+        try {
+          var saved = localStorage.getItem('recall-theme');
+          var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (error) {
+          /* localStorage may be unavailable in private modes */
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-D7nlhWvb.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/query-WMP9XTBv.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-aYAhs3Ee.js">
+    <link rel="modulepreload" crossorigin href="/assets/charts-C6MKQddf.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-K-sFGL0K.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

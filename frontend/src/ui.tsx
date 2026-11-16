@@ -1,13 +1,234 @@
-import React,{useState}from'react';import{Link,NavLink,Route,Routes,useParams,useSearchParams}from'react-router-dom';import{useQuery,useQueryClient}from'@tanstack/react-query';import{api,Meeting,Action}from'./api';import{LayoutDashboard,Upload,MessagesSquare,CheckSquare,GitCompare,Settings,CalendarDays,Sun,Moon,Search,ArrowUpRight}from'lucide-react';import{ResponsiveContainer,BarChart,Bar,XAxis,YAxis,Tooltip,LineChart,Line}from'recharts';
-function Shell(){const[dark,setDark]=useState(false);return <div className={dark?'dark':''}><div className="min-h-screen flex bg-[#f6f7fb] dark:bg-slate-950 dark:text-white"><aside className="w-60 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 p-5 hidden md:flex flex-col"><Link to="/" className="text-2xl font-bold text-indigo-600 mb-8">◉ Recall</Link><nav className="space-y-1">{[["/","Overview",LayoutDashboard],["/upload","Upload",Upload],["/meetings","Meetings",CalendarDays],["/chat","Ask Recall",MessagesSquare],["/actions","Action tracker",CheckSquare],["/compare","Compare",GitCompare],["/settings","Settings",Settings]].map(([path,label,Icon]:any)=><NavLink key={path} to={path} end={path==='/'} className={({isActive})=>'navlink '+(isActive?'active':'')}><Icon size={18}/>{label}</NavLink>)}</nav><div className="mt-auto"><button className="navlink w-full" onClick={()=>setDark(!dark)}>{dark?<Sun size={18}/>:<Moon size={18}/>}Toggle theme</button><p className="text-xs text-slate-400 px-3 mt-3">Local workspace · private by design</p></div></aside><main className="flex-1 min-w-0"><header className="h-16 px-5 md:px-9 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"><span className="md:hidden font-bold text-indigo-600">◉ Recall</span><span className="text-sm text-slate-500">Meeting intelligence</span><Link className="btn text-sm" to="/upload">+ Add meeting</Link></header><div className="p-5 md:p-9 max-w-7xl mx-auto"><Routes><Route path="/" element={<Dashboard/>}/><Route path="/upload" element={<UploadPage/>}/><Route path="/meetings" element={<Meetings/>}/><Route path="/meetings/:id" element={<Workspace/>}/><Route path="/chat" element={<Chat/>}/><Route path="/actions" element={<Actions/>}/><Route path="/compare" element={<Compare/>}/><Route path="/settings" element={<SettingsPage/>}/></Routes></div></main></div></div>}
-function Title({title,sub,children}:any){return <div className="flex items-start justify-between mb-6"><div><h1 className="text-2xl font-bold">{title}</h1><p className="text-slate-500 mt-1">{sub}</p></div>{children}</div>}
-function Dashboard(){const{data}=useQuery({queryKey:['dashboard'],queryFn:()=>api.get('/dashboard').then(r=>r.data)});const d=data||{totals:{},upcoming_deadlines:[],recent_meetings:[],recent_decisions:[],actions_by_assignee:[],meetings_per_week:[]};return <><Title title="Good to see you" sub="A clear view of what your meetings are moving forward."/><div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-5">{[['Meetings',d.totals.meetings,'📅'],['Pending tasks',d.totals.pending_actions,'◷'],['Overdue',d.totals.overdue_actions,'!'],['Active decisions',d.totals.active_decisions,'◇']].map(([a,b,c]:any)=><div className="card" key={a}><div className="text-slate-500 text-sm">{a}</div><div className="text-3xl font-bold mt-3">{b||0}</div><div className="mt-2 text-indigo-500">{c}</div></div>)}</div><div className="grid lg:grid-cols-3 gap-5"><section className="card lg:col-span-2"><h2 className="font-semibold mb-4">Meeting activity</h2>{d.meetings_per_week.length?<div className="h-64"><ResponsiveContainer><LineChart data={d.meetings_per_week}><XAxis dataKey="week"/><YAxis allowDecimals={false}/><Tooltip/><Line dataKey="count" stroke="#4f46e5" strokeWidth={3}/></LineChart></ResponsiveContainer></div>:<Empty text="Your meeting timeline will appear here."/>}</section><section className="card"><h2 className="font-semibold mb-4">Upcoming deadlines</h2>{d.upcoming_deadlines.length?d.upcoming_deadlines.map((x:any)=><div className="py-3 border-b last:border-0" key={x.id}><p className="font-medium">{x.task}</p><p className="text-sm text-slate-500">{x.assignee||'Unassigned'} · {x.deadline_date}</p></div>):<Empty text="No deadlines in the next 14 days."/>}</section><section className="card"><h2 className="font-semibold mb-3">Tasks by assignee</h2>{d.actions_by_assignee.length?<div className="h-48"><ResponsiveContainer><BarChart data={d.actions_by_assignee}><XAxis dataKey="assignee"/><YAxis allowDecimals={false}/><Tooltip/><Bar dataKey="count" fill="#818cf8" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer></div>:<Empty text="Tasks will show up here."/>}</section><section className="card lg:col-span-2"><h2 className="font-semibold mb-3">Recent meetings</h2>{d.recent_meetings.length?d.recent_meetings.map((m:any)=><Link key={m.id} to={'/meetings/'+m.id} className="flex justify-between py-3 border-b last:border-0"><span>{m.title}</span><span className="text-slate-500">{m.meeting_date} · {m.status}</span></Link>):<Empty text="No meetings yet. Upload your first transcript to get started." action={<Link to="/upload" className="btn inline-block mt-3">Upload a transcript</Link>}/>}</section></div></>}
-function Empty({text,action}:any){return <div className="py-9 text-center text-slate-500">{text}{action}</div>}
-function Meetings(){const[q,setQ]=useState('');const{data=[]}=useQuery({queryKey:['meetings',q],queryFn:()=>api.get('/meetings',{params:{q}}).then(r=>r.data)});return <><Title title="Meetings" sub="Your searchable meeting history."/><div className="flex gap-2 mb-5"><Search/><input placeholder="Search meetings" value={q} onChange={e=>setQ(e.target.value)} /></div><div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{data.map((m:any)=><Link to={'/meetings/'+m.id} className="card hover:border-indigo-300" key={m.id}><div className="flex justify-between"><h3 className="font-semibold">{m.title}</h3><ArrowUpRight size={17}/></div><p className="text-sm text-slate-500 mt-2">{m.meeting_date} · {m.status}</p><p className="text-sm mt-5">{m.participants} participants · {m.actions} actions · {m.decisions} decisions</p></Link>)}</div>{!data.length&&<Empty text="No matching meetings."/>}</>}
-function UploadPage(){const[files,setFiles]=useState<FileList|null>(null);const[title,setTitle]=useState('');const[date,setDate]=useState('');const[status,setStatus]=useState('');const[ids,setIds]=useState<string[]>([]);const qc=useQueryClient();async function submit(e:any){e.preventDefault();if(!files?.length)return;let added:string[]=[];for(const f of Array.from(files)){const fd=new FormData();fd.append('file',f);if(title)fd.append('title',title);if(date)fd.append('meeting_date',date);const r=await api.post('/meetings',fd);added.push(r.data.id)}setIds(added);setStatus('Processing');const poll=async()=>{const rows=await Promise.all(added.map(id=>api.get('/meetings/'+id+'/status').then(r=>r.data)));if(rows.every(x=>['ready','failed'].includes(x.status))){setStatus(rows.some(x=>x.status==='failed')?'Some uploads failed':'Ready');qc.invalidateQueries();}else setTimeout(poll,1800)};poll()}return <><Title title="Add meetings" sub="Upload a transcript. Your files stay on this machine."/><form onSubmit={submit} className="card max-w-3xl"><label className="block border-2 border-dashed border-indigo-200 rounded-2xl p-12 text-center cursor-pointer hover:bg-indigo-50"><Upload className="mx-auto text-indigo-500"/><p className="font-medium mt-3">Drop transcripts here or browse</p><p className="text-sm text-slate-500">TXT, DOCX, PDF, VTT, SRT · up to 10 MB each</p><input className="mt-4" type="file" multiple accept=".txt,.docx,.pdf,.vtt,.srt" onChange={e=>setFiles(e.target.files)}/></label><div className="grid sm:grid-cols-2 gap-3 mt-5"><input placeholder="Optional meeting title" value={title} onChange={e=>setTitle(e.target.value)}/><input type="date" value={date} onChange={e=>setDate(e.target.value)}/></div><button className="btn mt-5" type="submit">Upload and process</button>{status&&<p className="mt-4">{status}{ids.map(id=><span key={id}> · <Link className="text-indigo-600 underline" to={'/meetings/'+id}>Open meeting</Link></span>)}</p>}</form></>}
-function Workspace(){const{id=''}=useParams();const[params]=useSearchParams();const{data:m}=useQuery<Meeting>({queryKey:['meeting',id],queryFn:()=>api.get('/meetings/'+id).then(r=>r.data)});const{data:lines=[]}=useQuery({queryKey:['transcript',id],queryFn:()=>api.get(`/meetings/${id}/transcript`).then(r=>r.data)});const[tab,setTab]=useState('Summary');React.useEffect(()=>{let n=params.get('line');if(n){setTab('Transcript');setTimeout(()=>document.getElementById('line-'+n)?.scrollIntoView({behavior:'smooth',block:'center'}),500)}},[params]);if(!m)return <p>Loading meeting…</p>;return <><Title title={m.title} sub={`${m.meeting_date} · ${m.status}`}><Link to={'/chat?meeting='+id} className="btn">Chat with meeting</Link></Title>{m.processing_metadata&&<details className="card mb-5"><summary className="cursor-pointer font-medium">Processing methods and stage status</summary><pre className="mt-3 text-xs overflow-auto">{JSON.stringify(m.processing_metadata,null,2)}</pre></details>}<div className="flex flex-wrap gap-2 border-b mb-5">{['Summary','Transcript','Topics & entities','Decisions','Action items','Participants'].map(t=><button onClick={()=>setTab(t)} className={'px-3 py-2 '+(tab===t?'text-indigo-600 border-b-2 border-indigo-600':'text-slate-500')} key={t}>{t}</button>)}</div>{tab==='Summary'&&<div className="card"><h2 className="font-semibold mb-3">Meeting summary</h2>{m.summaries?.length?m.summaries.map(s=><div key={s.method}><span className="text-xs uppercase text-indigo-600">{s.method}{s.is_primary?' · primary':''}</span><p className="whitespace-pre-wrap mt-2">{s.summary_text}</p></div>):<Empty text="Summary is processing."/>}</div>}{tab==='Transcript'&&<div className="card space-y-3">{lines.map((u:any)=><div id={'line-'+u.idx} className={'p-3 rounded-lg scroll-mt-24 '+(params.get('line')===String(u.idx)?'bg-amber-100':'hover:bg-slate-50')} key={u.idx}><a className="text-xs text-slate-400 mr-3" href={'#line-'+u.idx}>#{u.idx}</a><b className="text-indigo-700 mr-2">{u.speaker}</b>{u.text}</div>)}</div>}{tab==='Topics & entities'&&<div className="card"><h3 className="font-semibold">Topics</h3><div className="flex flex-wrap gap-2 my-4">{m.topics?.map(t=><span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full" key={t.topic}>{t.topic}</span>)}</div><h3 className="font-semibold">Entities</h3><div className="flex flex-wrap gap-2 mt-3">{m.entities?.map((e,i)=><span className="px-3 py-1 bg-slate-100 rounded-full" key={i}>{e.text} · {e.label}</span>)}</div></div>}{tab==='Decisions'&&<div className="space-y-3">{m.decisions?.map(d=><div className="card" key={d.id}><div className="flex justify-between"><b>{d.decision}</b><span>{d.status}</span></div><blockquote className="mt-3 text-slate-500">“{d.evidence_quote}”</blockquote><Link className="text-indigo-600 text-sm" to={`?line=${d.evidence_utterance_idx}`}>View transcript line {d.evidence_utterance_idx}</Link></div>)}</div>}{tab==='Action items'&&<div className="space-y-3">{m.action_items?.map(a=><ActionRow key={a.id} a={a}/>)}</div>}{tab==='Participants'&&<div className="card">{m.participants?.map(p=><p className="py-2" key={p.speaker_name}>{p.speaker_name} <span className="text-slate-500">· {p.utterance_count} utterances · {p.word_count} words</span></p>)}</div>}</>}
-function ActionRow({a}:any){const qc=useQueryClient();return <div className="card"><div className="flex flex-wrap justify-between gap-2"><b>{a.task}</b><select value={a.status} onChange={async e=>{await api.patch('/actions/'+a.id,{status:e.target.value});qc.invalidateQueries()}}><option>pending</option><option>in_progress</option><option>done</option></select></div><div className="flex flex-wrap gap-2 mt-3"><label className="text-xs text-slate-500">Assignee<input aria-label="Assignee" className="block mt-1" defaultValue={a.assignee||''} placeholder="Unassigned" onBlur={async e=>{if(e.target.value!==(a.assignee||'')){await api.patch('/actions/'+a.id,{assignee:e.target.value||null});qc.invalidateQueries()}}}/></label><label className="text-xs text-slate-500">Deadline<input aria-label="Deadline" className="block mt-1" type="date" defaultValue={a.deadline_date||''} onChange={async e=>{await api.patch('/actions/'+a.id,{deadline_date:e.target.value||null});qc.invalidateQueries()}}/></label></div><p className="text-sm text-slate-500 mt-2">{a.assignee||'Unassigned'} · {a.deadline_text||a.deadline_date||'Not specified'} {!a.assignee_explicit&&<small> · inferred assignee</small>} {!a.deadline_explicit&&<small> · inferred deadline</small>}</p><blockquote className="text-sm mt-2">“{a.evidence_quote}”</blockquote><Link className="text-indigo-600 text-sm" to={`/meetings/${a.meeting_id}?line=${a.evidence_utterance_idx}`}>Evidence · line {a.evidence_utterance_idx}</Link></div>}
-function Actions(){const[status,setStatus]=useState('');const[assignee,setAssignee]=useState('');const[meeting,setMeeting]=useState('');const[overdue,setOverdue]=useState(false);const[view,setView]=useState('kanban');const qc=useQueryClient();const{data:meetings=[]}=useQuery({queryKey:['meetings'],queryFn:()=>api.get('/meetings').then(r=>r.data)});const{data=[],refetch}=useQuery({queryKey:['actions',status,assignee,meeting,overdue],queryFn:()=>api.get('/actions',{params:{status:status||undefined,assignee:assignee||undefined,meeting_id:meeting||undefined,overdue:overdue||undefined}}).then(r=>r.data)});async function drop(e:any,next:string){e.preventDefault();const id=e.dataTransfer.getData('text/action');if(id){await api.patch('/actions/'+id,{status:next});refetch();qc.invalidateQueries()}}return <><Title title="Action tracker" sub="Keep ownership and deadlines moving."/><div className="flex flex-wrap gap-3 mb-5"><select aria-label="Filter status" value={status} onChange={e=>setStatus(e.target.value)}><option value="">All statuses</option><option value="pending">Pending</option><option value="in_progress">In progress</option><option value="done">Done</option></select><input placeholder="Filter assignee" value={assignee} onChange={e=>setAssignee(e.target.value)}/><select aria-label="Filter meeting" value={meeting} onChange={e=>setMeeting(e.target.value)}><option value="">All meetings</option>{meetings.map((m:any)=><option value={m.id} key={m.id}>{m.title}</option>)}</select><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={overdue} onChange={e=>setOverdue(e.target.checked)}/>Overdue</label><button className="border rounded-lg px-3" onClick={()=>setView(view==='kanban'?'table':'kanban')}>{view==='kanban'?'Table view':'Kanban view'}</button></div>{view==='kanban'?<div className="grid lg:grid-cols-3 gap-4">{['pending','in_progress','done'].map(s=><div onDragOver={e=>e.preventDefault()} onDrop={e=>drop(e,s)} className="bg-slate-100/70 p-3 rounded-xl min-h-40" key={s}><h3 className="font-semibold p-2 capitalize">{s.replace('_',' ')} · {data.filter((a:Action)=>a.status===s).length}</h3>{data.filter((a:Action)=>a.status===s).map((a:Action)=><div draggable onDragStart={e=>e.dataTransfer.setData('text/action',a.id)} className="mb-3 cursor-grab" key={a.id}><ActionRow a={a}/></div>)}</div>)}</div>:<div className="space-y-3">{data.map((a:Action)=><ActionRow key={a.id} a={a}/>)}</div>}</>}
-function Compare(){const{data=[]}=useQuery({queryKey:['meetings'],queryFn:()=>api.get('/meetings').then(r=>r.data)});const[ids,setIds]=useState<string[]>([]);const[result,setResult]=useState<any>();async function run(){setResult((await api.post('/meetings/compare',{meeting_ids:ids})).data)}return <><Title title="Compare meetings" sub="See what changed over time."/><div className="card"><p className="mb-3">Select two or more meetings</p><div className="flex flex-wrap gap-3">{data.map((m:any)=><label className="flex gap-2 items-center" key={m.id}><input type="checkbox" checked={ids.includes(m.id)} onChange={e=>setIds(e.target.checked?[...ids,m.id]:ids.filter(x=>x!==m.id))}/>{m.title}</label>)}</div><button className="btn mt-5" disabled={ids.length<2} onClick={run}>Compare selected</button></div>{result&&<><div className="card mt-5 whitespace-pre-wrap"><h2 className="font-semibold mb-3">What changed</h2>{result.comparison}</div><div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 mt-4">{result.meetings?.map((m:any)=><section className="card" key={m.id}><h3 className="font-semibold">{m.title} · {m.meeting_date}</h3><h4 className="text-sm font-medium mt-4">Decisions</h4>{m.decisions?.map((d:any)=><p className="text-sm mt-2" key={d.id}>{d.decision} <span className="text-slate-500">({d.status})</span></p>)}<h4 className="text-sm font-medium mt-4">Actions</h4>{m.action_items?.map((a:any)=><p className="text-sm mt-2" key={a.id}>{a.task} · {a.assignee||'Unassigned'}</p>)}</section>)}</div></>}</>}
-function SettingsPage(){const{data}=useQuery({queryKey:['health'],queryFn:()=>api.get('/health').then(r=>r.data)});return <><Title title="Settings & health" sub="Local services used by Recall."/><div className="card max-w-xl">{data?Object.entries(data).map(([k,v]:any)=><div className="py-3 border-b last:border-0" key={k}><div className="flex justify-between"><span className="capitalize">{k.replaceAll('_',' ')}</span><b className={v===true||v==='ok'?'text-emerald-600':''}>{typeof v==='object'?Object.entries(v).map(([a,b])=>`${a}: ${b}`).join(' · '):String(v)}</b></div></div>):'Checking local services…'}</div></>}
-export default function App(){return <Shell/>}
+import { useEffect, useState, type ComponentType } from 'react';
+import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  CalendarDays,
+  CheckSquare,
+  GitCompare,
+  LayoutDashboard,
+  Menu,
+  MessagesSquare,
+  Moon,
+  Settings as SettingsIcon,
+  Sun,
+  Upload,
+  X,
+} from 'lucide-react';
+import { ToastProvider } from './components';
+import { ThemeProvider, useTheme } from './theme';
+import Dashboard from './pages/Dashboard';
+import UploadPage from './pages/Upload';
+import Meetings from './pages/Meetings';
+import Workspace from './pages/Workspace';
+import Chat from './pages/Chat';
+import Actions from './pages/Actions';
+import Compare from './pages/Compare';
+import SettingsPage from './pages/Settings';
+
+const NAV: { path: string; label: string; icon: ComponentType<{ size?: number | string }> }[] = [
+  { path: '/', label: 'Overview', icon: LayoutDashboard },
+  { path: '/upload', label: 'Upload', icon: Upload },
+  { path: '/meetings', label: 'Meetings', icon: CalendarDays },
+  { path: '/chat', label: 'Ask Recall', icon: MessagesSquare },
+  { path: '/actions', label: 'Action tracker', icon: CheckSquare },
+  { path: '/compare', label: 'Compare', icon: GitCompare },
+  { path: '/settings', label: 'Settings', icon: SettingsIcon },
+];
+
+function Brand() {
+  return (
+    <Link to="/" className="flex items-center gap-2.5">
+      <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand text-base font-bold text-brand-fg">
+        R
+      </span>
+      <span className="leading-tight">
+        <span className="block text-[0.95rem] font-semibold tracking-tight">Recall</span>
+        <span className="block text-[0.68rem] uppercase tracking-wider text-muted">Meeting intelligence</span>
+      </span>
+    </Link>
+  );
+}
+
+function ThemeToggle({ compact = false }: { compact?: boolean }) {
+  const { dark, toggle } = useTheme();
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
+      title={dark ? 'Switch to light theme' : 'Switch to dark theme'}
+      className={
+        compact
+          ? 'grid h-9 w-9 place-items-center rounded-lg border border-line text-muted transition hover:text-ink'
+          : 'navlink w-full'
+      }
+    >
+      {dark ? <Sun size={17} /> : <Moon size={17} />}
+      {!compact && <span>{dark ? 'Light theme' : 'Dark theme'}</span>}
+    </button>
+  );
+}
+
+function NavItems({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <nav className="space-y-1" aria-label="Main">
+      {NAV.map((item) => {
+        const Icon = item.icon;
+        return (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.path === '/'}
+            onClick={onNavigate}
+            className={({ isActive }) => `navlink ${isActive ? 'active' : ''}`}
+          >
+            <Icon size={18} />
+            {item.label}
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
+}
+
+function NotFound() {
+  return (
+    <div className="card card-pad text-center">
+      <p className="text-sm font-semibold">Page not found</p>
+      <p className="mt-1 text-sm text-muted">That page does not exist in Recall.</p>
+      <Link to="/" className="btn mt-4">
+        Back to overview
+      </Link>
+    </div>
+  );
+}
+
+function Shell() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    setMenuOpen(false);
+    try {
+      window.scrollTo({ top: 0 });
+    } catch {
+      /* jsdom and some embedded browsers do not implement scrollTo */
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  return (
+    <div className="min-h-screen bg-app text-ink md:flex">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:shadow-lift"
+      >
+        Skip to content
+      </a>
+
+      <aside className="hidden border-r border-line bg-surface px-4 py-5 md:sticky md:top-0 md:flex md:h-screen md:w-60 md:shrink-0 md:flex-col">
+        <div className="px-1">
+          <Brand />
+        </div>
+        <div className="mt-7 flex-1">
+          <NavItems />
+        </div>
+        <div className="space-y-2 border-t border-line pt-3">
+          <ThemeToggle />
+          <p className="px-3 text-[0.68rem] leading-relaxed text-muted">
+            Local workspace
+          </p>
+        </div>
+      </aside>
+
+      {menuOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div
+            className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+            role="presentation"
+            onClick={() => setMenuOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation"
+            className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-line bg-surface px-4 py-5 shadow-lift"
+          >
+            <div className="flex items-center justify-between">
+              <Brand />
+              <button
+                type="button"
+                aria-label="Close navigation"
+                className="grid h-9 w-9 place-items-center rounded-lg border border-line text-muted"
+                onClick={() => setMenuOpen(false)}
+              >
+                <X size={17} />
+              </button>
+            </div>
+            <div className="mt-7 flex-1">
+              <NavItems onNavigate={() => setMenuOpen(false)} />
+            </div>
+            <div className="border-t border-line pt-3">
+              <ThemeToggle />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-surface/85 px-4 backdrop-blur md:px-8">
+          <button
+            type="button"
+            aria-label="Open navigation"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line text-muted transition hover:text-ink md:hidden"
+            onClick={() => setMenuOpen(true)}
+          >
+            <Menu size={18} />
+          </button>
+          <div className="md:hidden">
+            <Brand />
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="hidden text-sm text-muted lg:block">Searchable, evidence-linked meeting memory</span>
+            <ThemeToggle compact />
+            <Link to="/upload" className="btn">
+              <Upload size={15} />
+              <span className="hidden sm:inline">Add meeting</span>
+            </Link>
+          </div>
+        </header>
+
+        <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-8 md:py-8">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/upload" element={<UploadPage />} />
+            <Route path="/meetings" element={<Meetings />} />
+            <Route path="/meetings/:id" element={<Workspace />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/actions" element={<Actions />} />
+            <Route path="/compare" element={<Compare />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <ToastProvider>
+        <Shell />
+      </ToastProvider>
+    </ThemeProvider>
+  );
+}

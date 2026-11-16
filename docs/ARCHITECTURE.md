@@ -29,12 +29,123 @@ flowchart TD
 
 ```mermaid
 erDiagram
+  MEETING {
+    uuid id PK
+    string title
+    date meeting_date
+    string source_filename
+    text raw_text
+    string status
+    text error_message
+    float duration_seconds
+    json processing_metadata
+    datetime created_at
+  }
+  PARTICIPANT {
+    uuid id PK
+    uuid meeting_id FK
+    string speaker_name
+    int utterance_count
+    int word_count
+  }
+  UTTERANCE {
+    uuid id PK
+    uuid meeting_id FK
+    int idx
+    string speaker
+    text text
+    float start_ts
+    float end_ts
+  }
+  SUMMARY {
+    uuid id PK
+    uuid meeting_id FK
+    string method
+    text summary_text
+    boolean is_primary
+    datetime created_at
+  }
+  TOPIC {
+    uuid id PK
+    uuid meeting_id FK
+    string topic
+    float score
+  }
+  ENTITY {
+    uuid id PK
+    uuid meeting_id FK
+    string text
+    string label
+    int utterance_idx
+  }
+  ACTION_ITEM {
+    uuid id PK
+    uuid meeting_id FK
+    text task
+    string assignee
+    string deadline_text
+    date deadline_date
+    string status
+    boolean assignee_explicit
+    boolean deadline_explicit
+    float confidence
+    int evidence_utterance_idx
+    text evidence_quote
+    string extraction_method
+    datetime created_at
+    datetime updated_at
+  }
+  DECISION {
+    uuid id PK
+    uuid meeting_id FK
+    text decision
+    string topic
+    int evidence_utterance_idx
+    text evidence_quote
+    string status
+    uuid superseded_by_id FK
+    string extraction_method
+    datetime created_at
+  }
+  MEETING_CHUNK {
+    uuid id PK
+    uuid meeting_id FK
+    int chunk_index
+    text content
+    int utterance_start_idx
+    int utterance_end_idx
+    int vector_id
+  }
+  VECTOR_DOC {
+    int vector_id PK
+    string doc_type
+    uuid ref_id
+    uuid meeting_id FK
+  }
+  CONVERSATION {
+    uuid id PK
+    string title
+    json meeting_filter
+    datetime created_at
+  }
+  MESSAGE {
+    uuid id PK
+    uuid conversation_id FK
+    string role
+    text content
+    json citations
+    datetime created_at
+  }
   MEETING ||--o{ UTTERANCE : has
   MEETING ||--o{ PARTICIPANT : has
   MEETING ||--o{ SUMMARY : has
+  MEETING ||--o{ TOPIC : covers
+  MEETING ||--o{ ENTITY : contains
   MEETING ||--o{ ACTION_ITEM : tracks
   MEETING ||--o{ DECISION : records
+  DECISION o|--o{ DECISION : supersedes
   MEETING ||--o{ MEETING_CHUNK : indexes
+  MEETING ||--o{ VECTOR_DOC : indexes
   CONVERSATION ||--o{ MESSAGE : contains
 ```
 

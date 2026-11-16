@@ -15,4 +15,15 @@
 
 ![Recall@k chart; uses hybrid when dense embeddings are loaded, otherwise BM25](retrieval.png)
 
-Evaluation metadata: corpus is synthetic and hand-annotated; random seed is 17; embedding model is all-MiniLM-L6-v2; LLM is the configured local Ollama model; baseline summarizers are facebook/bart-large-cnn and google/flan-t5-base. Hardware and Python versions are recorded by the command output. Unavailable components are explicitly marked not run.
+## Run metadata
+
+- Python: `3.15.0`
+- Platform: `macOS-27.0.1-arm64-arm-64bit-Mach-O` (`arm64`)
+- Seed: `17`
+- Embedding model: `all-MiniLM-L6-v2`
+- Ollama model: `qwen2.5:7b`
+- Summarizers: `facebook/bart-large-cnn`, `google/flan-t5-base`
+- Packages: `{"datasets": "not installed", "fastapi": "0.163.1", "sentence-transformers": "not installed", "spacy": "not installed", "torch": "not installed", "transformers": "not installed"}`
+- Prompt sources: `backend/app/nlp/actions.py`, `backend/app/nlp/decisions.py`, `backend/app/rag/prompts.py`
+
+Unavailable components are explicitly marked not run.

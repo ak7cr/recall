@@ -1,1 +1,31 @@
-<div id="root"></div><script type="module" src="/src/main.tsx"></script>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Recall is a local-first meeting intelligence workspace: summaries, decisions, action items, and cited answers across your meeting history."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#090d17" media="(prefers-color-scheme: dark)" />
+    <title>Recall · Meeting intelligence</title>
+    <script>
+      // Apply the saved theme before first paint to avoid a flash of the wrong scheme.
+      (function () {
+        try {
+          var saved = localStorage.getItem('recall-theme');
+          var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (error) {
+          /* localStorage may be unavailable in private modes */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 # Assumptions and scope
 
-- The first pasted prompt attachment was truncated. The later full prompt in `prompt.txt` is copied verbatim to `RECALL_SPEC.md` and is authoritative for the gap analysis and remaining work.
+- The initial pasted prompt excerpt was truncated. The full spec supplied for this task is preserved verbatim in `RECALL_SPEC.md` and is authoritative for the gap analysis and remaining work.
 - This is a single-user local application. No authentication is included.
 - API upload processing uses FastAPI background tasks. NLP models are loaded lazily; absent model packages/assets fall back to deterministic rules or report an unavailable optional stage.
 - PostgreSQL 16 is the configured default. SQLite compatibility supports tests and quick local development.

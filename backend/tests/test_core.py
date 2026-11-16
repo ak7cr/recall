@@ -43,6 +43,16 @@ def test_supersession_marks_prior_decision():
     class FakeLLM:
         def generate(self,*args,**kwargs):return '{"relationship":"supersedes","reason":"new supported connector"}'
     compare_prior(new,[old],FakeLLM());assert old.status=='superseded' and old.superseded_by_id=='new-id'
+def test_document_parsers_txt_docx_pdf():
+    from backend.app.ingestion.parsers import extract_text
+    from io import BytesIO
+    from docx import Document
+    from pypdf import PdfWriter
+    doc=Document();doc.add_paragraph('Rahul: DOCX transcript sentence.');buf=BytesIO();doc.save(buf)
+    assert 'DOCX transcript' in extract_text('notes.docx',buf.getvalue())
+    writer=PdfWriter();writer.add_blank_page(width=72,height=72);pdf=BytesIO();writer.write(pdf)
+    assert extract_text('notes.pdf',pdf.getvalue())==''
+    assert extract_text('notes.txt',b'hello')=='hello'
 def test_retrieval_modes_and_per_meeting_cap(monkeypatch):
     import numpy as np
     from backend.app.knowledge import embeddings

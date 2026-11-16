@@ -45,10 +45,10 @@ def test_rest_routes_and_upload_to_chat(monkeypatch):
         return '{}'
     monkeypatch.setattr(client,'generate',fake_generate)
     api=TestClient(app)
-    transcript=b"Rahul: We need to complete the authentication module by Friday.\nAnshuman: I'll handle the API integration.\nRahul: Great, I'll take care of testing.\nMeera: We decided to use PostgreSQL."
     uploaded=[]
-    for name in ['architecture-one','architecture-two']:
-        response=api.post('/api/meetings',files={'file':(name+'.txt',transcript,'text/plain')},data={'meeting_date':'2024-11-12'})
+    root=Path(__file__).resolve().parents[2]
+    for path in sorted((root/'sample_data').glob('*.txt')):
+        response=api.post('/api/meetings',files={'file':(path.name,path.read_bytes(),'text/plain')},data={'meeting_date':'2024-11-12'})
         assert response.status_code==202;uploaded.append(response.json()['id'])
     mid=uploaded[0]
     assert api.get('/api/meetings').status_code==200
@@ -56,7 +56,10 @@ def test_rest_routes_and_upload_to_chat(monkeypatch):
     assert detail['processing_metadata']['actions']['status']=='complete'
     assert api.get(f'/api/meetings/{mid}/transcript').json()[0]['idx']==1
     assert api.get(f'/api/meetings/{mid}/status').json()['status']=='ready'
-    assert len(detail['action_items'])==3
+    assert len(detail['action_items'])>=3
+    first_three=detail['action_items'][:3]
+    assert [x['assignee'] for x in first_three]==['Rahul','Anshuman','Priya']
+    assert first_three[0]['deadline_text']=='Friday'
     created=api.post('/api/actions',json={'meeting_id':mid,'task':'Write API smoke test','assignee':'Priya','evidence_utterance_idx':2,'evidence_quote':'manual'});assert created.status_code==201
     aid=created.json()['id'];assert api.get('/api/actions',params={'assignee':'Priya'}).status_code==200
     assert api.patch(f'/api/actions/{aid}',json={'status':'done'}).json()['status']=='done'

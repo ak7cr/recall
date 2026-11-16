@@ -19,11 +19,25 @@ Stages are isolated under `backend/app/nlp`, `knowledge`, and `rag`. Run `python
 
 ## macOS quickstart
 
-Install Homebrew, Docker Desktop, Python 3.11, Node, and Ollama. Start Docker Desktop and Ollama, then run `make setup`, `make db-up`, `make migrate`, `make models`, `make backend`, and in another terminal `make frontend`. `make seed` uploads the three sample transcripts. Swagger docs live at `/docs`.
+Install Homebrew, Docker Desktop, Python 3.11, Node, and Ollama. Configure `.env` from `.env.example` without overwriting any existing local settings. Start Docker Desktop and Ollama, then run `make setup`, `make db-up`, `make migrate`, and `make models`. Start `make backend` and `make frontend` in separate terminals. `make seed` uploads the three sample transcripts; `make verify` also migrates, seeds, asks the six demo questions, and prints their cited sources. Swagger docs live at `/docs`.
 
 ## Screenshots
 
 Screenshots can be added here after launching the local UI.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  UI[React UI] -->|HTTP| API[FastAPI]
+  API --> INGEST[Transcript ingestion]
+  INGEST --> NLP[Local NLP pipeline]
+  NLP --> DB[(PostgreSQL)]
+  API --> RET[BM25 / dense / hybrid retrieval]
+  RET --> RAG[Evidence-grounded RAG]
+  RAG --> OLLAMA[Local Ollama]
+  RAG --> DB
+```
 
 ## NLP technique map
 

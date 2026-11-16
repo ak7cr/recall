@@ -10,7 +10,7 @@ def run():
         health=httpx.get('http://localhost:8000/api/health',timeout=2).json()
         if not health.get('ollama',{}).get('model_present'):return {"status":"not run","reason":"Recall API or configured Ollama model is unavailable","question_count":len(items)}
     except Exception:return {"status":"not run","reason":"Recall API is not running","question_count":len(items)}
-    records=[];refused=answerable=0;coverage=0.0;citation_hits=citation_total=gold_total=0
+    records=[];refused=answerable=0;coverage=0.0;citation_hits=citation_valid=citation_total=gold_total=0
     with httpx.Client(base_url='http://localhost:8000/api',timeout=180) as client:
         for item in items:
             try:
@@ -23,11 +23,13 @@ def run():
                 answerable+=1;score=keyword_coverage(answer,item.get('expected_keywords',[]));coverage+=score
                 ids=set(item.get('meeting_ids',[]));ranges=item.get('evidence_ranges',{})
                 if isinstance(ranges,list):ranges={mid:ranges for mid in ids}
-                gold_total+=len(ids)
+                gold_total+=len(ids);hits_for_question=set();valid_for_question=0
                 for c in citations:
                     citation_total+=1;mid=c.get('meeting_id');span=(c.get('utterance_start_idx',0),c.get('utterance_end_idx',0))
                     allowed=ranges.get(mid,[]);hit=any(span[0]<=end and span[1]>=start for start,end in allowed)
-                    citation_hits+=int(hit)
+                    citation_valid+=int(hit);valid_for_question+=int(hit)
+                    if hit:hits_for_question.add(mid)
+                citation_hits+=len(hits_for_question)
                 correct=score>0
             records.append({"question":item['question'],"correctness":correct,"keyword_coverage":None if unanswerable else score,"citations":citations})
-    return {"status":"measured","questions":len(items),"mean_keyword_coverage":coverage/max(1,answerable),"citation_precision":citation_hits/max(1,citation_total),"citation_recall":citation_hits/max(1,gold_total),"correct_refusal_rate":refused/max(1,sum(bool(x.get('unanswerable')) for x in items)),"records":records}
+    return {"status":"measured","questions":len(items),"mean_keyword_coverage":coverage/max(1,answerable),"citation_precision":citation_valid/max(1,citation_total),"citation_recall":citation_hits/max(1,gold_total),"correct_refusal_rate":refused/max(1,sum(bool(x.get('unanswerable')) for x in items)),"records":records}

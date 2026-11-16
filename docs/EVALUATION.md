@@ -17,4 +17,19 @@ The harness reports measured BM25 retrieval and rules-based decision detection. 
 | Live QA | Not run: Recall API is not running |
 | QA inventory | 43 questions (5 unanswerable) |
 
-Action extraction is not run because MiniLM weights are unavailable and task matching requires embedding cosine. Dense and hybrid retrieval are not substituted with BM25; they are marked not run because all-MiniLM-L6-v2 is not loaded. The corpus has eight synthetic meetings, including one 3,235-word transcript, an implicit owner, an unassigned task, a decision reversal, and an absent participant mentioned by name. Summarization, NER, live QA, and LLM decision extraction are not run because their local model runtimes are unavailable.
+## Full component results
+
+| Experiment | Result | Status / reason |
+|---|---|---|
+| Actions · rules P / R / F1 and assignee/deadline accuracy | — | Not run: MiniLM weights unavailable; task matching requires embedding cosine |
+| Actions · LLM P / R / F1 and assignee/deadline accuracy | — | Not run: Ollama model and MiniLM unavailable |
+| Decisions · rules precision / recall / F1 | 0.238 / 0.833 / 0.370 | Measured against independent annotations |
+| Decisions · LLM precision / recall / F1 | — | Not run: Ollama model unavailable |
+| Retrieval · BM25 recall@1 / @3 / @5 / @10, MRR | 0.086 / 0.161 / 0.246 / 0.366, MRR 0.453 | Measured on gold evidence ranges |
+| Retrieval · dense MiniLM + FAISS | — | Not run: MiniLM weights unavailable |
+| Retrieval · hybrid RRF recall@1 / @3 / @5 / @10, MRR | — | Not run: MiniLM weights unavailable |
+| QA · answer coverage, citation precision/recall, refusal rate | — | Not run: Recall API is not running |
+| NER · span P / R / F1 per label, with/without EntityRuler | — | Not run: spaCy package/model unavailable |
+| Summarization · ROUGE-1/2/L for gold meetings and 100 DialogSum samples | — | Not run: transformers/torch unavailable; `datasets` is not installed |
+
+No gold-self-comparison metric is reported. Dense and hybrid results are not substituted with BM25. The corpus has eight synthetic meetings, including one 3,235-word transcript, an implicit owner, an unassigned task, a decision reversal, and an absent participant mentioned by name. Package and hardware metadata, prompt file paths, and exact skip reasons are in [the generated report](../eval/results/report.md). The current host only ran Python 3.15; Python 3.11 and Postgres/Ollama end-to-end results remain unverified.

@@ -1,6 +1,8 @@
 import csv,json
 from pathlib import Path
 import struct,zlib
+import platform,sys
+from importlib.metadata import PackageNotFoundError,version
 from eval import eval_actions,eval_decisions,eval_retrieval,eval_qa,eval_ner,eval_summarization
 def write_chart(path,values):
     """Render a compact labeled bar chart as PNG using only the standard library."""
@@ -47,7 +49,12 @@ def main():
             report.append(f"| {name} | {value.get('status','reported')} | `{json.dumps(value.get('metrics',value.get('reason',value)))}` |")
         else:report.append(f"| {name} | reported | `{json.dumps(value)}` |")
     for key,value in results.items():flatten(key,value)
-    (out/'report.md').write_text('\n'.join(report)+'\n\n![Recall@k chart; uses hybrid when dense embeddings are loaded, otherwise BM25](retrieval.png)\n\nEvaluation metadata: corpus is synthetic and hand-annotated; random seed is 17; embedding model is all-MiniLM-L6-v2; LLM is the configured local Ollama model; baseline summarizers are facebook/bart-large-cnn and google/flan-t5-base. Hardware and Python versions are recorded by the command output. Unavailable components are explicitly marked not run.\n')
+    packages={}
+    for pkg in ['torch','transformers','sentence-transformers','spacy','datasets','fastapi']:
+        try:packages[pkg]=version(pkg)
+        except PackageNotFoundError:packages[pkg]='not installed'
+    from backend.app.config import settings
+    (out/'report.md').write_text('\n'.join(report)+f'\n\n![Recall@k chart; uses hybrid when dense embeddings are loaded, otherwise BM25](retrieval.png)\n\n## Run metadata\n\n- Python: `{sys.version.split()[0]}`\n- Platform: `{platform.platform()}` (`{platform.machine()}`)\n- Seed: `17`\n- Embedding model: `{settings.embedding_model}`\n- Ollama model: `{settings.ollama_model}`\n- Summarizers: `facebook/bart-large-cnn`, `google/flan-t5-base`\n- Packages: `{json.dumps(packages,sort_keys=True)}`\n- Prompt sources: `backend/app/nlp/actions.py`, `backend/app/nlp/decisions.py`, `backend/app/rag/prompts.py`\n\nUnavailable components are explicitly marked not run.\n')
     retrieval=results['retrieval'];vals=retrieval.get('hybrid',{}).get('metrics') or retrieval.get('bm25',{}).get('metrics',{});write_chart(out/'retrieval.png',vals)
     print((out/'report.md').read_text())
 if __name__=='__main__':main()
